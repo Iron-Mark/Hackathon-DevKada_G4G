@@ -1,11 +1,23 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import 'package:kudlit_ph/core/error/exceptions.dart';
 import 'package:kudlit_ph/features/learning/domain/entities/lesson_progress.dart';
 
+/// SQLite-backed lesson progress store.
+///
+/// On web, where `sqflite` is unavailable, this resolves to an in-memory
+/// implementation keyed by `lesson_id` for the current browser session.
+/// Supabase still acts as the source of truth across sessions — the
+/// notifier seeds the in-memory cache from Supabase on cold start.
 class SqliteLessonProgressDatasource {
-  SqliteLessonProgressDatasource();
+  factory SqliteLessonProgressDatasource() {
+    if (kIsWeb) return _InMemoryLessonProgressDatasource();
+    return SqliteLessonProgressDatasource._native();
+  }
+
+  SqliteLessonProgressDatasource._native();
 
   static const String _dbName = 'kudlit_learning.db';
   static const int _dbVersion = 1;
@@ -121,5 +133,44 @@ class SqliteLessonProgressDatasource {
           ? DateTime.fromMillisecondsSinceEpoch(completedAtMs as int)
           : null,
     );
+  }
+}
+
+/// Web fallback: session-scoped in-memory lesson progress, keyed by
+/// `lesson_id` (mirrors the SQLite primary key). Replaced on conflict to
+/// match the native `ConflictAlgorithm.replace` semantics.
+class _InMemoryLessonProgressDatasource extends SqliteLessonProgressDatasource {
+  _InMemoryLessonProgressDatasource() : super._native();
+
+  final Map<String, LessonProgress> _byLessonId = <String, LessonProgress>{};
+
+  @override
+  Future<List<LessonProgress>> loadAll() async {
+    final List<LessonProgress> sorted = _byLessonId.values.toList()
+      ..sort(
+        (LessonProgress a, LessonProgress b) =>
+            b.lastModified.compareTo(a.lastModified),
+      );
+    return List<LessonProgress>.unmodifiable(sorted);
+  }
+
+  @override
+  Future<LessonProgress?> loadForLesson(String lessonId) async {
+    return _byLessonId[lessonId];
+  }
+
+  @override
+  Future<void> save(LessonProgress progress) async {
+    _byLessonId[progress.lessonId] = progress;
+  }
+
+  @override
+  Future<void> clear() async {
+    _byLessonId.clear();
+  }
+
+  @override
+  Future<void> dispose() async {
+    _byLessonId.clear();
   }
 }

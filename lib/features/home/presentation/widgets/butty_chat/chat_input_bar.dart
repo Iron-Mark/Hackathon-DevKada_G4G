@@ -46,7 +46,7 @@ class ChatInputBar extends StatelessWidget {
                     : (disabledHint ?? 'Preparing offline Gemma...'),
                 hintStyle: TextStyle(
                   fontSize: 13,
-                  color: cs.onSurface.withAlpha(100),
+                  color: cs.onSurface.withAlpha(160),
                 ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(

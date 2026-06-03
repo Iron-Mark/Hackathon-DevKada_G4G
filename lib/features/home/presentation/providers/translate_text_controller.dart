@@ -11,7 +11,8 @@ import 'package:kudlit_ph/features/home/presentation/providers/translation_histo
 import 'package:kudlit_ph/features/home/presentation/utils/safe_ai_output.dart';
 import 'package:kudlit_ph/features/learning/domain/entities/gemma_prompts.dart';
 import 'package:kudlit_ph/features/translator/domain/entities/chat_message.dart';
-import 'package:kudlit_ph/features/translator/presentation/providers/translator_providers.dart';
+import 'package:kudlit_ph/features/translator/presentation/providers/ai_inference_provider.dart';
+import 'package:kudlit_ph/features/translator/presentation/providers/ai_inference_state.dart';
 
 @immutable
 class TranslateTextState {
@@ -25,6 +26,7 @@ class TranslateTextState {
     required this.aiResponse,
     this.cleanupPreview,
     this.aiSource,
+    this.inputRevision = 0,
   });
 
   const TranslateTextState.initial()
@@ -48,6 +50,12 @@ class TranslateTextState {
   final String? cleanupPreview;
   final TranslateAiResultSource? aiSource;
 
+  /// Bumped only by external (non-typing) input mutations — example chips,
+  /// clear, etc. The text field watches this to know when to resync its
+  /// controller; plain typing never bumps it, so the cursor is never reset
+  /// mid-sentence.
+  final int inputRevision;
+
   bool get hasInput => inputText.trim().isNotEmpty;
 
   TranslateTextState copyWith({
@@ -62,6 +70,7 @@ class TranslateTextState {
     bool clearCleanupPreview = false,
     TranslateAiResultSource? aiSource,
     bool clearAiSource = false,
+    int? inputRevision,
   }) {
     return TranslateTextState(
       inputText: inputText ?? this.inputText,
@@ -75,6 +84,7 @@ class TranslateTextState {
           ? null
           : (cleanupPreview ?? this.cleanupPreview),
       aiSource: clearAiSource ? null : (aiSource ?? this.aiSource),
+      inputRevision: inputRevision ?? this.inputRevision,
     );
   }
 }
@@ -94,23 +104,66 @@ class TranslateTextController extends Notifier<TranslateTextState> {
   );
   static final RegExp _baybayinPattern = RegExp(r'[ᜀ-ᜟ]');
 
+  /// How long after the last keystroke the heavy transliteration runs.
+  /// Keeps `baybayifyWord` + regex feedback off the typing hot path so the
+  /// keyboard stays responsive during continuous input.
+  static const Duration _deriveDebounceDuration = Duration(milliseconds: 180);
+
   Timer? _saveDebounce;
+  Timer? _deriveDebounce;
 
   @override
   TranslateTextState build() {
-    ref.onDispose(() => _saveDebounce?.cancel());
+    ref.onDispose(() {
+      _saveDebounce?.cancel();
+      _deriveDebounce?.cancel();
+    });
     return const TranslateTextState.initial();
   }
 
+  /// Typing path. Echoes the raw text instantly (cheap, no rebuild storm)
+  /// and defers the expensive derive until typing pauses. Never bumps
+  /// [TranslateTextState.inputRevision], so the field/cursor is untouched.
   void setInput(String value) {
-    state = _deriveState(
+    if (value.trim().isEmpty) {
+      _deriveDebounce?.cancel();
+      state = state.copyWith(
+        inputText: value,
+        baybayinText: '',
+        latinText: '',
+        feedbackMessages: const <String>[],
+        clearCleanupPreview: true,
+        aiResponse: '',
+        clearAiSource: true,
+      );
+      _scheduleAutoSave();
+      return;
+    }
+    state = state.copyWith(inputText: value);
+    _deriveDebounce?.cancel();
+    _deriveDebounce = Timer(_deriveDebounceDuration, () {
+      state = _deriveState(
+        inputText: state.inputText,
+        latinToBaybayin: state.latinToBaybayin,
+      );
+      _scheduleAutoSave();
+    });
+  }
+
+  /// External input (example chips, etc). Derives immediately and bumps
+  /// [TranslateTextState.inputRevision] so the field resyncs its controller.
+  void applyExternalInput(String value) {
+    _deriveDebounce?.cancel();
+    final TranslateTextState derived = _deriveState(
       inputText: value,
       latinToBaybayin: state.latinToBaybayin,
     );
+    state = derived.copyWith(inputRevision: state.inputRevision + 1);
     _scheduleAutoSave();
   }
 
   void setDirection(bool latinToBaybayin) {
+    _deriveDebounce?.cancel();
     state = _deriveState(
       inputText: state.inputText,
       latinToBaybayin: latinToBaybayin,
@@ -120,7 +173,10 @@ class TranslateTextController extends Notifier<TranslateTextState> {
 
   void clearInput() {
     _saveDebounce?.cancel();
-    state = const TranslateTextState.initial();
+    _deriveDebounce?.cancel();
+    state = const TranslateTextState.initial().copyWith(
+      inputRevision: state.inputRevision + 1,
+    );
   }
 
   void _scheduleAutoSave() {
@@ -274,51 +330,29 @@ class TranslateTextController extends Notifier<TranslateTextState> {
     final List<ChatMessage> history = <ChatMessage>[
       ChatMessage(text: userPrompt, isUser: true, timestamp: DateTime.now()),
     ];
-    final AiPreference mode =
-        ref.read(appPreferencesNotifierProvider).value?.aiPreference ??
-        AiPreference.cloud;
 
-    if (mode == AiPreference.cloud) {
-      await _streamResponse(
-        stream: ref
-            .read(cloudGemmaDatasourceProvider)
-            .generate(history, systemInstruction: GemmaPrompts.translatorMode),
-        source: TranslateAiResultSource.online,
-        rethrowOnError: false,
-      );
-      return;
-    }
+    // Route through the same shared inference notifier Butty uses. The
+    // repository owns model resolution, local-vs-cloud selection, and
+    // cloud fallback — translate no longer hand-rolls any of that, so the
+    // local Gemma model loads and behaves identically to the Butty chat.
+    final AiInferenceState? inference = ref
+        .read(aiInferenceNotifierProvider)
+        .value;
+    final TranslateAiResultSource source = switch (inference) {
+      AiReady(mode: AiPreference.local) => TranslateAiResultSource.offline,
+      _ => TranslateAiResultSource.online,
+    };
 
-    final TranslateOfflineStatus offline = await ref.read(
-      translateOfflineStatusProvider.future,
+    await _streamResponse(
+      stream: ref
+          .read(aiInferenceNotifierProvider.notifier)
+          .generateResponse(
+            history,
+            systemInstruction: GemmaPrompts.translatorMode,
+          ),
+      source: source,
+      rethrowOnError: false,
     );
-    if (!offline.usable) {
-      state = state.copyWith(
-        aiBusy: false,
-        aiResponse: 'Offline model is unavailable for this action.',
-        clearAiSource: true,
-      );
-      return;
-    }
-
-    try {
-      await _streamResponse(
-        stream: ref
-            .read(localGemmaDatasourceProvider)
-            .generate(history, systemInstruction: GemmaPrompts.translatorMode),
-        source: TranslateAiResultSource.offline,
-        rethrowOnError: true,
-      );
-    } catch (error) {
-      await _streamResponse(
-        stream: ref
-            .read(cloudGemmaDatasourceProvider)
-            .generate(history, systemInstruction: GemmaPrompts.translatorMode),
-        source: TranslateAiResultSource.fallback,
-        prefix: 'Offline inference failed, so cloud fallback was used.\n\n',
-        rethrowOnError: false,
-      );
-    }
   }
 
   Future<void> _streamResponse({

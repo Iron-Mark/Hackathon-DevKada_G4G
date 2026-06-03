@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -5,6 +6,11 @@ import 'package:kudlit_ph/core/error/exceptions.dart';
 import 'package:kudlit_ph/features/translator/domain/entities/chat_memory_fact.dart';
 
 /// SQLite-backed long-term memory for the Butty chat.
+///
+/// On web, where `sqflite` is unavailable, this resolves to an in-memory
+/// implementation that keeps facts for the current browser session only.
+/// Supabase sync still provides cross-session persistence for authenticated
+/// users.
 ///
 /// Schema:
 /// ```sql
@@ -20,7 +26,12 @@ import 'package:kudlit_ph/features/translator/domain/entities/chat_memory_fact.d
 /// CREATE UNIQUE INDEX chat_memory_facts_norm ON chat_memory_facts(normalized);
 /// ```
 class SqliteChatMemoryDatasource {
-  SqliteChatMemoryDatasource();
+  factory SqliteChatMemoryDatasource() {
+    if (kIsWeb) return _InMemoryChatMemoryDatasource();
+    return SqliteChatMemoryDatasource._native();
+  }
+
+  SqliteChatMemoryDatasource._native();
 
   static const String _dbName = 'kudlit_chat_memory.db';
   static const int _dbVersion = 1;
@@ -200,5 +211,100 @@ class SqliteChatMemoryDatasource {
         row['last_referenced_at'] as int,
       ),
     );
+  }
+}
+
+/// Web fallback: session-scoped in-memory chat memory store, keyed by
+/// normalized content to honour the dedupe contract.
+class _InMemoryChatMemoryDatasource extends SqliteChatMemoryDatasource {
+  _InMemoryChatMemoryDatasource() : super._native();
+
+  final Map<int, ChatMemoryFact> _factsById = <int, ChatMemoryFact>{};
+  final Set<String> _normalizedSeen = <String>{};
+  int _nextId = 1;
+
+  @override
+  Future<List<ChatMemoryFact>> loadAll({int? limit}) async {
+    final List<ChatMemoryFact> sorted = _factsById.values.toList()
+      ..sort(
+        (ChatMemoryFact a, ChatMemoryFact b) =>
+            b.createdAt.compareTo(a.createdAt),
+      );
+    if (limit == null || sorted.length <= limit) {
+      return List<ChatMemoryFact>.unmodifiable(sorted);
+    }
+    return List<ChatMemoryFact>.unmodifiable(sorted.take(limit));
+  }
+
+  @override
+  Future<ChatMemoryFact?> insertIfNew(ChatMemoryFact fact) async {
+    final String normalized = SqliteChatMemoryDatasource.normalize(
+      fact.content,
+    );
+    if (_normalizedSeen.contains(normalized)) return null;
+    final ChatMemoryFact saved = fact.copyWith(id: _nextId++);
+    _factsById[saved.id!] = saved;
+    _normalizedSeen.add(normalized);
+    return saved;
+  }
+
+  @override
+  Future<void> setRemoteId({
+    required int localId,
+    required String remoteId,
+  }) async {
+    final ChatMemoryFact? existing = _factsById[localId];
+    if (existing == null) return;
+    _factsById[localId] = existing.copyWith(remoteId: remoteId);
+  }
+
+  @override
+  Future<void> updateFact({
+    required int localId,
+    required String factType,
+    required String content,
+  }) async {
+    final ChatMemoryFact? existing = _factsById[localId];
+    if (existing == null) return;
+    final String oldNorm = SqliteChatMemoryDatasource.normalize(
+      existing.content,
+    );
+    final String newNorm = SqliteChatMemoryDatasource.normalize(content);
+    _normalizedSeen
+      ..remove(oldNorm)
+      ..add(newNorm);
+    _factsById[localId] = existing.copyWith(
+      factType: factType,
+      content: content,
+      lastReferencedAt: DateTime.now(),
+    );
+  }
+
+  @override
+  Future<ChatMemoryFact?> findById(int localId) async {
+    return _factsById[localId];
+  }
+
+  @override
+  Future<void> deleteById(int localId) async {
+    final ChatMemoryFact? existing = _factsById.remove(localId);
+    if (existing == null) return;
+    _normalizedSeen.remove(
+      SqliteChatMemoryDatasource.normalize(existing.content),
+    );
+  }
+
+  @override
+  Future<void> clear() async {
+    _factsById.clear();
+    _normalizedSeen.clear();
+    _nextId = 1;
+  }
+
+  @override
+  Future<void> dispose() async {
+    _factsById.clear();
+    _normalizedSeen.clear();
+    _nextId = 1;
   }
 }

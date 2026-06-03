@@ -6,11 +6,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:kudlit_ph/app/constants.dart';
 import 'package:kudlit_ph/app/router/router_listenable.dart';
+import 'package:kudlit_ph/core/auth/user_role.dart';
 import 'package:kudlit_ph/features/auth/domain/entities/auth_user.dart';
 import 'package:kudlit_ph/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:kudlit_ph/features/auth/presentation/screens/home_screen.dart';
 import 'package:kudlit_ph/features/auth/presentation/screens/login_screen.dart';
 import 'package:kudlit_ph/features/auth/presentation/screens/privacy_policy_screen.dart';
+import 'package:kudlit_ph/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:kudlit_ph/features/auth/presentation/screens/sign_up_screen.dart';
 import 'package:kudlit_ph/features/auth/presentation/screens/terms_screen.dart';
 import 'package:kudlit_ph/features/home/presentation/providers/app_preferences_provider.dart';
@@ -51,6 +53,16 @@ GoRouter appRouter(Ref ref) {
       final bool isAuthenticated =
           authState.hasValue && authState.value != null;
 
+      // Password recovery: a `passwordRecovery` event from Supabase establishes
+      // a session but the user has not chosen a new password yet. Force the
+      // dedicated reset-password screen until the flow completes. This must
+      // run before any other redirect so a cached session can't bounce the
+      // user to /home and skip the password update.
+      if (listenable.passwordRecoveryPending &&
+          state.matchedLocation != AppConstants.routeResetPassword) {
+        return AppConstants.routeResetPassword;
+      }
+
       // Splash: hold while loading, then route to correct destination.
       if (state.matchedLocation == AppConstants.routeSplash) {
         if (authState.isLoading || prefsState.isLoading) return null;
@@ -87,6 +99,17 @@ GoRouter appRouter(Ref ref) {
 
       // Still loading auth on other routes — don't redirect.
       if (authState.isLoading) return null;
+
+      // Admin route gate: only allow users whose `profiles.role == admin`.
+      // Default-deny while the role is still loading or on error so a
+      // non-admin can't briefly slip through during the async resolve.
+      if (state.matchedLocation == AppConstants.routeAdminStrokeRecorder) {
+        if (!isAuthenticated) return AppConstants.routeLogin;
+        final AsyncValue<UserRole> roleState = listenable.roleState;
+        final bool isAdmin =
+            roleState.hasValue && (roleState.value?.isAdmin ?? false);
+        if (!isAdmin) return AppConstants.routeHome;
+      }
 
       final bool isOnAuthRoute =
           state.matchedLocation == AppConstants.routeLogin ||
@@ -136,9 +159,17 @@ GoRouter appRouter(Ref ref) {
             const HomeScreen(),
       ),
       GoRoute(
+        // OAuth callback (Google) lands here; password-recovery sessions are
+        // intercepted by the top-level redirect above and forwarded to
+        // `/reset-password` before this builder is reached.
         path: AppConstants.routeAuthReset,
         builder: (BuildContext context, GoRouterState state) =>
             const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppConstants.routeResetPassword,
+        builder: (BuildContext context, GoRouterState state) =>
+            const ResetPasswordScreen(),
       ),
       GoRoute(
         path: AppConstants.routeSettings,

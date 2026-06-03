@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:kudlit_ph/core/error/failures.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
 import 'package:kudlit_ph/features/scanner/domain/repositories/baybayin_detector.dart';
 import 'package:kudlit_ph/features/scanner/presentation/providers/scan_tab_controller.dart';
@@ -222,26 +224,30 @@ class _FakeBaybayinDetector implements BaybayinDetector {
   Stream<List<BaybayinDetection>> get detections => _stream.stream;
 
   @override
-  Future<List<BaybayinDetection>> detectImage(Uint8List imageBytes) async {
+  Future<Either<Failure, List<BaybayinDetection>>> detectImage(
+    Uint8List imageBytes,
+  ) async {
     lastImageBytes = imageBytes;
     _stream.add(nextDetections);
-    return nextDetections;
+    return right(nextDetections);
   }
 
   @override
-  Future<Uint8List?> captureFrame() async => nextCapturedFrame;
+  Future<Either<Failure, Uint8List?>> captureFrame() async =>
+      right(nextCapturedFrame);
 
   @override
-  Future<void> toggleTorch({required bool enabled}) async {}
+  Future<Either<Failure, Unit>> toggleTorch({required bool enabled}) async =>
+      right(unit);
 
   @override
-  Future<void> switchCamera() async {}
+  Future<Either<Failure, Unit>> switchCamera() async => right(unit);
 
   @override
-  Future<void> pauseInference() async {}
+  Future<Either<Failure, Unit>> pauseInference() async => right(unit);
 
   @override
-  Future<void> resumeInference() async {}
+  Future<Either<Failure, Unit>> resumeInference() async => right(unit);
 
   @override
   void dispose() {

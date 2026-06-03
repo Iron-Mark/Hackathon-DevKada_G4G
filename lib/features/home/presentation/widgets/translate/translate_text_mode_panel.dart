@@ -15,12 +15,14 @@ class TranslateTextModePanel extends StatelessWidget {
     required this.disabledReason,
     required this.onDirectionChanged,
     required this.onInputChanged,
+    required this.onExternalInput,
     required this.onClear,
     required this.onExplain,
     required this.onCheckInput,
     required this.onCopy,
     required this.onShare,
     this.onInputFocusChanged,
+    this.inputFieldKey,
     this.compactLayout = false,
   });
 
@@ -29,12 +31,22 @@ class TranslateTextModePanel extends StatelessWidget {
   final String? disabledReason;
   final ValueChanged<bool> onDirectionChanged;
   final ValueChanged<String> onInputChanged;
+
+  /// Non-typing input (example chips). Routes through the controller's
+  /// `applyExternalInput`, which bumps the field revision so the text
+  /// field picks the value up; plain typing uses [onInputChanged].
+  final ValueChanged<String> onExternalInput;
   final VoidCallback onClear;
   final VoidCallback onExplain;
   final VoidCallback onCheckInput;
   final VoidCallback onCopy;
   final VoidCallback onShare;
   final ValueChanged<bool>? onInputFocusChanged;
+
+  /// Stable identity for the inner text field so it survives the screen's
+  /// keyboard-driven layout switches without re-mounting (see
+  /// `_TranslateScreenState._textInputFieldKey`).
+  final Key? inputFieldKey;
   final bool compactLayout;
 
   @override
@@ -49,10 +61,12 @@ class TranslateTextModePanel extends StatelessWidget {
           compact: true,
           onDirectionChanged: onDirectionChanged,
           onInputChanged: onInputChanged,
+          onExternalInput: onExternalInput,
           onClear: onClear,
           onExplain: onExplain,
           onCheckInput: onCheckInput,
           onInputFocusChanged: onInputFocusChanged,
+          inputFieldKey: inputFieldKey,
         ),
       );
     }
@@ -88,10 +102,12 @@ class TranslateTextModePanel extends StatelessWidget {
               compact: false,
               onDirectionChanged: onDirectionChanged,
               onInputChanged: onInputChanged,
+              onExternalInput: onExternalInput,
               onClear: onClear,
               onExplain: onExplain,
               onCheckInput: onCheckInput,
               onInputFocusChanged: onInputFocusChanged,
+              inputFieldKey: inputFieldKey,
             ),
           ],
         ),
@@ -142,10 +158,12 @@ class TranslateTextModePanel extends StatelessWidget {
           compact: false,
           onDirectionChanged: onDirectionChanged,
           onInputChanged: onInputChanged,
+          onExternalInput: onExternalInput,
           onClear: onClear,
           onExplain: onExplain,
           onCheckInput: onCheckInput,
           onInputFocusChanged: onInputFocusChanged,
+          inputFieldKey: inputFieldKey,
         ),
       ],
     );
@@ -160,18 +178,22 @@ class _BottomInputArea extends StatelessWidget {
     required this.compact,
     required this.onDirectionChanged,
     required this.onInputChanged,
+    required this.onExternalInput,
     required this.onClear,
     required this.onExplain,
     required this.onCheckInput,
     this.onInputFocusChanged,
+    this.inputFieldKey,
   });
 
   final TranslateTextState state;
   final bool inputEnabled;
   final String? disabledReason;
   final bool compact;
+  final Key? inputFieldKey;
   final ValueChanged<bool> onDirectionChanged;
   final ValueChanged<String> onInputChanged;
+  final ValueChanged<String> onExternalInput;
   final VoidCallback onClear;
   final VoidCallback onExplain;
   final VoidCallback onCheckInput;
@@ -204,8 +226,16 @@ class _BottomInputArea extends StatelessWidget {
           ),
           SizedBox(height: keyboardCompact ? 4 : 8),
           _InputField(
+            key: inputFieldKey,
             text: state.inputText,
-            enabled: inputEnabled && !state.aiBusy,
+            revision: state.inputRevision,
+            // Stay enabled while the AI is working. Disabling the field on
+            // `aiBusy` drops focus and force-closes the keyboard, then
+            // re-enabling on completion reopens it — the IME show/hide burst
+            // seen right after each inference. The action buttons
+            // (`_TextActionsRow`) and the controller already block re-entry
+            // while busy, so keeping the field editable is safe.
+            enabled: inputEnabled,
             expanded: !compact,
             dense: keyboardCompact,
             hintText: state.latinToBaybayin
@@ -220,7 +250,7 @@ class _BottomInputArea extends StatelessWidget {
             _ReverseExamplesHint(
               compact: keyboardCompact,
               enabled: inputEnabled && !state.aiBusy,
-              onSelect: onInputChanged,
+              onSelect: onExternalInput,
             ),
           ],
           if (state.feedbackMessages.isNotEmpty ||
@@ -260,7 +290,9 @@ class _BottomInputArea extends StatelessWidget {
 
 class _InputField extends StatefulWidget {
   const _InputField({
+    super.key,
     required this.text,
+    required this.revision,
     required this.enabled,
     required this.expanded,
     required this.dense,
@@ -271,6 +303,11 @@ class _InputField extends StatefulWidget {
   });
 
   final String text;
+
+  /// Bumped by the controller only on external (non-typing) mutations.
+  /// The field resyncs its controller exclusively when this changes, so
+  /// plain typing never resets the cursor or breaks IME composition.
+  final int revision;
   final bool enabled;
   final bool expanded;
   final bool dense;
@@ -286,13 +323,24 @@ class _InputField extends StatefulWidget {
 class _InputFieldState extends State<_InputField> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  bool _hasText = false;
 
   @override
   void initState() {
     super.initState();
     _controller.text = widget.text;
-    _controller.addListener(() => setState(() {}));
+    _hasText = widget.text.isNotEmpty;
+    _controller.addListener(_handleTextChanged);
     _focusNode.addListener(_handleFocusChanged);
+  }
+
+  /// Rebuild only when the text crosses the empty/non-empty boundary —
+  /// that is the only thing the field's own build depends on (the clear
+  /// icon). Rebuilding on every keystroke is what made typing janky.
+  void _handleTextChanged() {
+    final bool hasText = _controller.text.isNotEmpty;
+    if (hasText == _hasText) return;
+    setState(() => _hasText = hasText);
   }
 
   void _handleFocusChanged() {
@@ -302,6 +350,10 @@ class _InputFieldState extends State<_InputField> {
   @override
   void didUpdateWidget(covariant _InputField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Only an external mutation (clear, example chip, direction-driven
+    // reset) bumps the revision. Typing-driven rebuilds leave the field —
+    // and the user's cursor / IME composing region — completely alone.
+    if (widget.revision == oldWidget.revision) return;
     if (_controller.text == widget.text) return;
     _controller.value = TextEditingValue(
       text: widget.text,
@@ -311,6 +363,7 @@ class _InputFieldState extends State<_InputField> {
 
   @override
   void dispose() {
+    _controller.removeListener(_handleTextChanged);
     _focusNode.removeListener(_handleFocusChanged);
     _focusNode.dispose();
     _controller.dispose();

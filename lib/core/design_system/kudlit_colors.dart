@@ -21,7 +21,7 @@ class KudlitColors {
 
   static const Color grey500 = Color(0xFFE9ECF6);
   static const Color grey400 = Color(0xFFD0D4E2);
-  static const Color grey300 = Color(0xFF6C738E);
+  static const Color grey300 = Color(0xFF4A5068);
   static const Color grey200 = Color(0xFF5C6078);
 
   static const Color success400 = Color(0xFF46B986);

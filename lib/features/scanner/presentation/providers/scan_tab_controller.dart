@@ -3,8 +3,10 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:kudlit_ph/core/error/failures.dart';
 import 'package:kudlit_ph/core/utils/baybayify.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
 import 'package:kudlit_ph/features/scanner/presentation/providers/scanner_evaluation_provider.dart';
@@ -140,11 +142,29 @@ class ScanTabController extends Notifier<ScanTabState> {
   Future<void> toggleFlash() async {
     final bool next = !state.flashOn;
     state = state.copyWith(flashOn: next);
-    await ref.read(baybayinDetectorProvider).toggleTorch(enabled: next);
+    final Either<Failure, Unit> result = await ref
+        .read(baybayinDetectorProvider)
+        .toggleTorch(enabled: next);
+    result.fold(
+      (Failure failure) {
+        debugPrint('[ScanTab] toggleTorch failed: ${_messageOf(failure)}');
+        // Revert the optimistic flash state so the UI doesn't lie about it.
+        state = state.copyWith(flashOn: !next);
+      },
+      (_) {},
+    );
   }
 
   Future<void> switchCamera() async {
-    await ref.read(baybayinDetectorProvider).switchCamera();
+    final Either<Failure, Unit> result = await ref
+        .read(baybayinDetectorProvider)
+        .switchCamera();
+    result.fold(
+      (Failure failure) {
+        debugPrint('[ScanTab] switchCamera failed: ${_messageOf(failure)}');
+      },
+      (_) {},
+    );
   }
 
   Future<void> pickImageFromGallery() async {
@@ -159,7 +179,7 @@ class ScanTabController extends Notifier<ScanTabState> {
       await processGalleryImageBytes(bytes);
     } catch (e) {
       _beginStillImageScan();
-      _finishStillImageError(_noticeForStillImageError(e));
+      _finishStillImageError(_noticeForStillImageError(e.toString()));
     }
   }
 
@@ -171,12 +191,18 @@ class ScanTabController extends Notifier<ScanTabState> {
   Future<void> captureNativeFrame({Uint8List? fallbackBytes}) async {
     _beginStillImageScan();
 
-    Uint8List? imageBytes;
-    try {
-      imageBytes = await ref.read(baybayinDetectorProvider).captureFrame();
-    } catch (e) {
-      debugPrint('[ScanTab] native camera frame capture failed: $e');
-    }
+    final Either<Failure, Uint8List?> result = await ref
+        .read(baybayinDetectorProvider)
+        .captureFrame();
+    Uint8List? imageBytes = result.fold(
+      (Failure failure) {
+        debugPrint(
+          '[ScanTab] native camera frame capture failed: ${_messageOf(failure)}',
+        );
+        return null;
+      },
+      (Uint8List? bytes) => bytes,
+    );
     imageBytes ??= fallbackBytes;
 
     if (imageBytes == null || imageBytes.isEmpty) {
@@ -345,7 +371,18 @@ class ScanTabController extends Notifier<ScanTabState> {
       clearScanNotice: true,
     );
     if (!kIsWeb) {
-      ref.read(baybayinDetectorProvider).resumeInference();
+      unawaited(
+        ref.read(baybayinDetectorProvider).resumeInference().then((
+          Either<Failure, Unit> result,
+        ) {
+          result.fold(
+            (Failure failure) => debugPrint(
+              '[ScanTab] resumeInference failed: ${_messageOf(failure)}',
+            ),
+            (_) {},
+          );
+        }),
+      );
     }
   }
 
@@ -397,15 +434,19 @@ class ScanTabController extends Notifier<ScanTabState> {
       _beginStillImageScan();
     }
 
-    try {
-      final List<BaybayinDetection> results = await ref
-          .read(baybayinDetectorProvider)
-          .detectImage(bytes);
-      _finishStillImageScan(results, imageBytes: bytes, source: source);
-    } catch (e) {
-      debugPrint('[ScanTab] still-image scan failed: $e');
-      _finishStillImageError(_noticeForStillImageError(e));
-    }
+    final Either<Failure, List<BaybayinDetection>> result = await ref
+        .read(baybayinDetectorProvider)
+        .detectImage(bytes);
+    result.fold(
+      (Failure failure) {
+        final String message = _messageOf(failure);
+        debugPrint('[ScanTab] still-image scan failed: $message');
+        _finishStillImageError(_noticeForStillImageError(message));
+      },
+      (List<BaybayinDetection> results) {
+        _finishStillImageScan(results, imageBytes: bytes, source: source);
+      },
+    );
   }
 
   void _beginStillImageScan() {
@@ -483,8 +524,19 @@ class ScanTabController extends Notifier<ScanTabState> {
     );
   }
 
-  ScanNotice _noticeForStillImageError(Object error) {
-    final String raw = error.toString().toLowerCase();
+  /// Extracts a human-readable message from any [Failure] sealed variant for
+  /// debug logging. Presentation copy lives in [_noticeForStillImageError] and
+  /// the scan notice widgets, not here.
+  String _messageOf(Failure failure) {
+    return switch (failure) {
+      NetworkFailure(:final String message) => message,
+      UnknownFailure(:final String message) => message,
+      _ => failure.toString(),
+    };
+  }
+
+  ScanNotice _noticeForStillImageError(String error) {
+    final String raw = error.toLowerCase();
     if (raw.contains('permission')) {
       return const ScanNotice(
         title: 'Image access blocked',

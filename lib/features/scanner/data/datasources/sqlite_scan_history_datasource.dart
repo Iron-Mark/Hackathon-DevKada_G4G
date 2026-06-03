@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -7,6 +8,11 @@ import 'package:kudlit_ph/core/error/exceptions.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/scan_result.dart';
 
 /// SQLite-backed scan result history store.
+///
+/// On web, where `sqflite` is unavailable, this resolves to an in-memory
+/// implementation that keeps scan history for the current browser session
+/// only. Supabase sync still provides cross-session persistence for
+/// authenticated users.
 ///
 /// Schema:
 /// ```sql
@@ -18,7 +24,12 @@ import 'package:kudlit_ph/features/scanner/domain/entities/scan_result.dart';
 /// );
 /// ```
 class SqliteScanHistoryDatasource {
-  SqliteScanHistoryDatasource();
+  factory SqliteScanHistoryDatasource() {
+    if (kIsWeb) return _InMemoryScanHistoryDatasource();
+    return SqliteScanHistoryDatasource._native();
+  }
+
+  SqliteScanHistoryDatasource._native();
 
   static const String _dbName = 'kudlit_scan.db';
   static const int _dbVersion = 1;
@@ -103,5 +114,44 @@ class SqliteScanHistoryDatasource {
       translation: row['translation'] as String,
       timestamp: DateTime.fromMillisecondsSinceEpoch(row['timestamp'] as int),
     );
+  }
+}
+
+/// Web fallback: session-scoped in-memory scan history. Data is lost on page
+/// reload — Supabase sync gives cross-session persistence for authenticated
+/// users.
+class _InMemoryScanHistoryDatasource extends SqliteScanHistoryDatasource {
+  _InMemoryScanHistoryDatasource() : super._native();
+
+  final List<ScanResult> _results = <ScanResult>[];
+  int _nextId = 1;
+
+  @override
+  Future<List<ScanResult>> loadAll({int? limit}) async {
+    final List<ScanResult> sorted = List<ScanResult>.from(_results)
+      ..sort((ScanResult a, ScanResult b) => (b.id ?? 0).compareTo(a.id ?? 0));
+    if (limit == null || sorted.length <= limit) {
+      return List<ScanResult>.unmodifiable(sorted);
+    }
+    return List<ScanResult>.unmodifiable(sorted.take(limit));
+  }
+
+  @override
+  Future<ScanResult> insert(ScanResult result) async {
+    final ScanResult saved = result.copyWith(id: _nextId++);
+    _results.add(saved);
+    return saved;
+  }
+
+  @override
+  Future<void> clear() async {
+    _results.clear();
+    _nextId = 1;
+  }
+
+  @override
+  Future<void> dispose() async {
+    _results.clear();
+    _nextId = 1;
   }
 }

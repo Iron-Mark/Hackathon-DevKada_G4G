@@ -114,10 +114,7 @@ class _SetupBackground extends StatelessWidget {
         // Faded Baybayin glyphs
         const BaybayinBackdrop(),
         // Soft radial aura — larger on desktop for a more dramatic backdrop
-        _AuraGlow(
-          size: isDesktop ? 520 : 280,
-          top: isDesktop ? -100 : -40,
-        ),
+        _AuraGlow(size: isDesktop ? 520 : 280, top: isDesktop ? -100 : -40),
       ],
     );
   }
@@ -174,22 +171,21 @@ class _ModelSetupBody extends StatelessWidget {
         builder: (BuildContext context, BoxConstraints constraints) {
           final bool isDesktop = constraints.maxWidth >= 900;
           final bool landscape = constraints.maxWidth > constraints.maxHeight;
-          final bool shortPortrait =
-              !landscape && constraints.maxHeight < 680;
-          if (isDesktop) {
-            return _DesktopSetupLayout(
-              busy: busy,
-              onContinue: onContinue,
-              onSkip: onSkip,
-              errorMessage: errorMessage,
-            );
-          }
-          return landscape
+          final bool shortPortrait = !landscape && constraints.maxHeight < 680;
+          final Widget content = isDesktop
+              ? _DesktopSetupLayout(
+                  busy: busy,
+                  onContinue: onContinue,
+                  onSkip: onSkip,
+                  errorMessage: errorMessage,
+                )
+              : landscape
               ? _LandscapeSetupLayout(
                   busy: busy,
                   onContinue: onContinue,
                   onSkip: onSkip,
                   errorMessage: errorMessage,
+                  webCentered: kIsWeb,
                 )
               : shortPortrait
               ? _ShortPortraitSetupLayout(
@@ -197,13 +193,26 @@ class _ModelSetupBody extends StatelessWidget {
                   onContinue: onContinue,
                   onSkip: onSkip,
                   errorMessage: errorMessage,
+                  webCentered: kIsWeb,
                 )
               : _PortraitSetupLayout(
                   busy: busy,
                   onContinue: onContinue,
                   onSkip: onSkip,
                   errorMessage: errorMessage,
+                  webCentered: kIsWeb,
                 );
+
+          if (kIsWeb) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(child: content),
+              ),
+            );
+          }
+
+          return content;
         },
       ),
     );
@@ -330,22 +339,58 @@ class _DesktopDivider extends StatelessWidget {
   }
 }
 
-
 class _PortraitSetupLayout extends StatelessWidget {
   const _PortraitSetupLayout({
     required this.busy,
     required this.onContinue,
     required this.onSkip,
     this.errorMessage,
+    this.webCentered = false,
   });
 
   final bool busy;
   final VoidCallback onContinue;
   final VoidCallback onSkip;
   final String? errorMessage;
+  final bool webCentered;
 
   @override
   Widget build(BuildContext context) {
+    if (webCentered) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const _SetupHero(),
+                const SizedBox(height: 20),
+                const _SetupHeadline(),
+                const SizedBox(height: 18),
+                const _ModelDownloadsPanel(),
+                const SizedBox(height: 10),
+                const _DownloadNotice(),
+                if (errorMessage != null) ...<Widget>[
+                  const SizedBox(height: 10),
+                  _SetupErrorBanner(message: errorMessage!),
+                ],
+                _SetupActions(
+                  busy: busy,
+                  onContinue: onContinue,
+                  onSkip: onSkip,
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 460),
@@ -383,15 +428,53 @@ class _ShortPortraitSetupLayout extends StatelessWidget {
     required this.onContinue,
     required this.onSkip,
     this.errorMessage,
+    this.webCentered = false,
   });
 
   final bool busy;
   final VoidCallback onContinue;
   final VoidCallback onSkip;
   final String? errorMessage;
+  final bool webCentered;
 
   @override
   Widget build(BuildContext context) {
+    if (webCentered) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const _SetupHero(height: 86),
+                const SizedBox(height: 14),
+                const _SetupHeadline(compact: true),
+                const SizedBox(height: 16),
+                const _ModelDownloadsPanel(),
+                const SizedBox(height: 10),
+                const _DownloadNotice(compact: true),
+                if (errorMessage != null) ...<Widget>[
+                  const SizedBox(height: 10),
+                  _SetupErrorBanner(message: errorMessage!),
+                ],
+                const SizedBox(height: 18),
+                _SetupActions(
+                  busy: busy,
+                  onContinue: onContinue,
+                  onSkip: onSkip,
+                  compact: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 16),
       child: Column(
@@ -427,61 +510,74 @@ class _LandscapeSetupLayout extends StatelessWidget {
     required this.onContinue,
     required this.onSkip,
     this.errorMessage,
+    this.webCentered = false,
   });
 
   final bool busy;
   final VoidCallback onContinue;
   final VoidCallback onSkip;
   final String? errorMessage;
+  final bool webCentered;
 
   @override
   Widget build(BuildContext context) {
+    final Widget content = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        const Expanded(
+          flex: 5,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _SetupHero(height: 86),
+              SizedBox(height: 14),
+              _SetupHeadline(compact: true),
+            ],
+          ),
+        ),
+        const SizedBox(width: 22),
+        Expanded(
+          flex: 4,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const _ModelDownloadsPanel(),
+              const SizedBox(height: 8),
+              const _DownloadNotice(compact: true),
+              if (errorMessage != null) ...<Widget>[
+                const SizedBox(height: 8),
+                _SetupErrorBanner(message: errorMessage!),
+              ],
+              const SizedBox(height: 10),
+              _SetupActions(
+                busy: busy,
+                onContinue: onContinue,
+                onSkip: onSkip,
+                compact: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (webCentered) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 980),
+          child: content,
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 980),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              const Expanded(
-                flex: 5,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _SetupHero(height: 86),
-                    SizedBox(height: 14),
-                    _SetupHeadline(compact: true),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 22),
-              Expanded(
-                flex: 4,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const _ModelDownloadsPanel(),
-                    const SizedBox(height: 8),
-                    const _DownloadNotice(compact: true),
-                    if (errorMessage != null) ...<Widget>[
-                      const SizedBox(height: 8),
-                      _SetupErrorBanner(message: errorMessage!),
-                    ],
-                    const SizedBox(height: 10),
-                    _SetupActions(
-                      busy: busy,
-                      onContinue: onContinue,
-                      onSkip: onSkip,
-                      compact: true,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          child: content,
         ),
       ),
     );
@@ -524,19 +620,37 @@ class _SetupHeadline extends StatelessWidget {
           'Get ready to use Kudlit',
           style: TextStyle(
             color: KudlitColors.blue900,
-            fontSize: large ? 32 : compact ? 24 : 28,
+            fontSize: large
+                ? 32
+                : compact
+                ? 24
+                : 28,
             fontWeight: FontWeight.w700,
           ),
         ),
-        SizedBox(height: large ? 14 : compact ? 8 : 10),
+        SizedBox(
+          height: large
+              ? 14
+              : compact
+              ? 8
+              : 10,
+        ),
         Text(
           kIsWeb
               ? 'Set up the downloads Kudlit needs before you start.'
               : 'Download these once so key features can keep working even without internet.',
           style: TextStyle(
             color: KudlitColors.grey300,
-            fontSize: large ? 16 : compact ? 13 : 15,
-            height: large ? 1.6 : compact ? 1.35 : 1.55,
+            fontSize: large
+                ? 16
+                : compact
+                ? 13
+                : 15,
+            height: large
+                ? 1.6
+                : compact
+                ? 1.35
+                : 1.55,
           ),
         ),
       ],

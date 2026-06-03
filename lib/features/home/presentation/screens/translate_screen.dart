@@ -10,6 +10,7 @@ import 'package:kudlit_ph/features/home/presentation/providers/translate_sketchp
 import 'package:kudlit_ph/features/home/presentation/providers/translate_text_controller.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/translate/export_sheet.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/translate/translate_header.dart';
+import 'package:kudlit_ph/features/home/presentation/widgets/translate/translate_model_status_banner.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/translate/translate_sketchpad_mode_panel.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/translate/translate_text_mode_panel.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/floating_tab_nav.dart';
@@ -23,6 +24,15 @@ class TranslateScreen extends ConsumerStatefulWidget {
 
 class _TranslateScreenState extends ConsumerState<TranslateScreen> {
   bool _textInputFocused = false;
+
+  /// Stable identity for the text input across every layout branch. The
+  /// keyboard inset animates frame-by-frame, and several layout switches key
+  /// off it (constrained vs full layout, header/banner add/remove). Without a
+  /// GlobalKey those switches re-parent and re-mount the field, disposing its
+  /// FocusNode mid-edit — which hides the keyboard, refocuses, and loops
+  /// (the IME show/hide thrash + viewport-metric spam). A GlobalKey makes
+  /// Flutter migrate the same Element/State instead of re-mounting it.
+  final GlobalKey _textInputFieldKey = GlobalKey();
 
   void _setTextInputFocused(bool focused) {
     if (_textInputFocused == focused) return;
@@ -43,26 +53,14 @@ class _TranslateScreenState extends ConsumerState<TranslateScreen> {
     final AsyncValue<AppPreferences> prefsAsync = ref.watch(
       appPreferencesNotifierProvider,
     );
-    final AsyncValue<TranslateOfflineStatus> offlineStatus = ref.watch(
-      translateOfflineStatusProvider,
-    );
-
     final AiPreference mode =
         prefsAsync.value?.aiPreference ?? AiPreference.cloud;
-    final bool offlinePending =
-        mode == AiPreference.local && offlineStatus.isLoading;
-    final bool offlineUnavailable =
-        mode == AiPreference.local &&
-        !offlineStatus.isLoading &&
-        !(offlineStatus.value?.usable ?? false);
-    final bool aiActionsEnabled = !offlinePending && !offlineUnavailable;
-    final String? disabledReason = switch (mode) {
-      AiPreference.local when offlinePending => 'Preparing offline Gemma...',
-      AiPreference.local when offlineUnavailable =>
-        offlineStatus.value?.detail ??
-            'Offline model is unavailable for this action.',
-      _ => null,
-    };
+    // The shared inference repository now owns model resolution and cloud
+    // fallback, so AI actions stay enabled; the status banner communicates
+    // offline readiness and the setup affordance (parity with Butty).
+    const bool aiActionsEnabled = true;
+    const String? disabledReason = null;
+    final bool showModelBanner = mode == AiPreference.local;
     final Size screenSize = MediaQuery.sizeOf(context);
     final view = View.of(context);
     final double rawKeyboardInset =
@@ -82,12 +80,16 @@ class _TranslateScreenState extends ConsumerState<TranslateScreen> {
         inputEnabled: aiActionsEnabled,
         disabledReason: disabledReason,
         compactLayout: compactLayout,
+        inputFieldKey: _textInputFieldKey,
         onDirectionChanged: ref
             .read(translateTextControllerProvider.notifier)
             .setDirection,
         onInputChanged: ref
             .read(translateTextControllerProvider.notifier)
             .setInput,
+        onExternalInput: ref
+            .read(translateTextControllerProvider.notifier)
+            .applyExternalInput,
         onClear: ref.read(translateTextControllerProvider.notifier).clearInput,
         onExplain: () => unawaited(
           ref.read(translateTextControllerProvider.notifier).explain(),
@@ -123,10 +125,19 @@ class _TranslateScreenState extends ConsumerState<TranslateScreen> {
           builder: (BuildContext context, BoxConstraints constraints) {
             final bool portraitKeyboardOpen =
                 keyboardOpen && screenSize.height >= screenSize.width;
+            final bool textMode =
+                pageState.mode == TranslateWorkspaceMode.text;
+            // Eager (non-async) preserve: in portrait text mode the keyboard
+            // can only be open because the text field is focused, so lock the
+            // layout immediately instead of waiting for the focus-listener
+            // setState to land a frame later (which is what let the constrained
+            // branch fire on the first animation frame and start the loop).
             final bool preserveFocusedPortraitInput =
-                _textInputFocused &&
-                (portraitKeyboardOpen ||
-                    (screenSize.width <= 500 && constraints.maxHeight < 560));
+                (textMode && portraitKeyboardOpen) ||
+                (_textInputFocused &&
+                    (portraitKeyboardOpen ||
+                        (screenSize.width <= 500 &&
+                            constraints.maxHeight < 560)));
             final bool shortLandscape =
                 constraints.maxWidth > constraints.maxHeight &&
                 constraints.maxHeight < 500;
@@ -152,6 +163,10 @@ class _TranslateScreenState extends ConsumerState<TranslateScreen> {
                         .read(translatePageControllerProvider.notifier)
                         .setMode,
                   ),
+                if (showModelBanner &&
+                    !keyboardOpen &&
+                    pageState.mode == TranslateWorkspaceMode.text)
+                  const TranslateModelStatusBanner(),
                 Expanded(
                   child: switch (pageState.mode) {
                     TranslateWorkspaceMode.text => textModePanel(

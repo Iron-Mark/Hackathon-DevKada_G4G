@@ -1,6 +1,5 @@
 // ignore: unnecessary_import — flutter_riverpod is needed for Ref resolution
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -51,8 +50,12 @@ LocalGemmaDatasource localGemmaDatasource(Ref ref) {
 
 @Riverpod(keepAlive: true)
 CloudGemmaDatasource cloudGemmaDatasource(Ref ref) {
-  final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-  final CloudGemmaDatasource ds = CloudGemmaDatasource(apiKey: apiKey);
+  // The Gemini API key is intentionally NOT read on the client. All cloud
+  // Gemma calls are proxied through the Supabase Edge Function
+  // `gemini-proxy`, which holds the upstream key server-side and verifies
+  // the caller's Supabase JWT.
+  final SupabaseClient client = ref.watch(supabaseClientProvider);
+  final CloudGemmaDatasource ds = CloudGemmaDatasource(supabase: client);
   ref.onDispose(ds.dispose);
   return ds;
 }

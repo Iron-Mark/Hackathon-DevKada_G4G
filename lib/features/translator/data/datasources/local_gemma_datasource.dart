@@ -25,11 +25,44 @@ class LocalGemmaDatasource implements AiDatasource {
   bool _activeModelHasVision = false;
   InferenceChat? _chat;
 
+  /// Last model we know is installed for this device. flutter_gemma's native
+  /// "active model" is process-scoped and is lost on every app restart, while
+  /// the downloaded file persists. Remembering the model lets the inference
+  /// path reactivate it on demand instead of relying on a UI readiness probe
+  /// having run first.
+  GemmaModelInfo? _knownModel;
+
+  /// Records [model] as the installed model without doing any native work.
+  /// Called from the inference notifier as soon as it resolves the active
+  /// model so reactivation can self-heal even before any readiness probe.
+  void rememberModel(GemmaModelInfo model) {
+    _knownModel = model;
+  }
+
+  /// Reactivates the installed model into the native engine when the engine
+  /// reports no active model (typical after an app restart). No-op when an
+  /// active model already exists, when we don't know the model, or when the
+  /// file is not installed (the caller's `getActiveModel()` then surfaces the
+  /// error and the repository falls back to cloud).
+  Future<void> _reactivateIfNeeded() async {
+    if (FlutterGemma.hasActiveModel() || _knownModel == null) return;
+    final bool installed = await FlutterGemma.isModelInstalled(
+      _knownModel!.fileName,
+    );
+    if (!installed) return;
+    debugPrint(
+      '[Gemma][local] engine has no active model — reactivating '
+      '${_knownModel!.fileName}',
+    );
+    await _reactivateInstalledModel(_knownModel!);
+  }
+
   // Mutex so concurrent probeReadiness calls share one native operation.
   bool _probing = false;
   Future<LocalGemmaReadiness>? _pendingProbe;
 
   Future<LocalGemmaReadiness> probeReadiness(GemmaModelInfo model) {
+    _knownModel = model;
     // Fast path: model is already loaded — skip all native work.
     if (_activeModel != null) {
       debugPrint(
@@ -123,6 +156,7 @@ class LocalGemmaDatasource implements AiDatasource {
     GemmaModelInfo model, {
     void Function(int progress)? onProgress,
   }) async {
+    _knownModel = model;
     _cancelToken = CancelToken();
     try {
       final String? hfToken = dotenv.env['HUGGINGFACE_TOKEN'];
@@ -168,6 +202,9 @@ class LocalGemmaDatasource implements AiDatasource {
       );
       // Vision-enabled models work fine for text generation, so reuse
       // _activeModel regardless of _activeModelHasVision.
+      if (_activeModel == null) {
+        await _reactivateIfNeeded();
+      }
       _activeModel ??= await FlutterGemma.getActiveModel();
       debugPrint('[Gemma][local] active model ready');
       _chat ??= await _activeModel!.createChat(
@@ -228,6 +265,9 @@ class LocalGemmaDatasource implements AiDatasource {
       if (_activeModel != null && !_activeModelHasVision) {
         await _activeModel!.close();
         _activeModel = null;
+      }
+      if (_activeModel == null) {
+        await _reactivateIfNeeded();
       }
       _activeModel ??= await FlutterGemma.getActiveModel(
         supportImage: true,

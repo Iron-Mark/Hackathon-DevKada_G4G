@@ -11,6 +11,7 @@ class AppConstants {
   static const String routeHome = '/home';
   static const String routeSettings = '/settings';
   static const String routeAuthReset = '/auth/reset';
+  static const String routeResetPassword = '/reset-password';
   static const String routeLesson = '/learn/lesson';
   static const String routeTerms = '/terms';
   static const String routePrivacyPolicy = '/privacy-policy';

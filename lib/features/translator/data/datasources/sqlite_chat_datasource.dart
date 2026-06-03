@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -5,6 +6,11 @@ import 'package:kudlit_ph/core/error/exceptions.dart';
 import 'package:kudlit_ph/features/translator/domain/entities/chat_message.dart';
 
 /// SQLite-backed chat history store.
+///
+/// On web, where `sqflite` is unavailable, this resolves to an in-memory
+/// implementation (see [_InMemoryChatDatasource]) that keeps chat history for
+/// the current browser session only. Supabase sync still provides
+/// cross-session persistence for authenticated users.
 ///
 /// Schema:
 /// ```sql
@@ -17,7 +23,12 @@ import 'package:kudlit_ph/features/translator/domain/entities/chat_message.dart'
 /// );
 /// ```
 class SqliteChatDatasource {
-  SqliteChatDatasource();
+  factory SqliteChatDatasource() {
+    if (kIsWeb) return _InMemoryChatDatasource();
+    return SqliteChatDatasource._native();
+  }
+
+  SqliteChatDatasource._native();
 
   static const String _dbName = 'kudlit_chat.db';
   static const int _dbVersion = 2;
@@ -146,5 +157,67 @@ class SqliteChatDatasource {
       isUser: (row['is_user'] as int) == 1,
       timestamp: DateTime.fromMillisecondsSinceEpoch(row['timestamp'] as int),
     );
+  }
+}
+
+/// Web fallback: session-scoped in-memory chat history. Data is lost on page
+/// reload — Supabase sync gives cross-session persistence for authenticated
+/// users.
+class _InMemoryChatDatasource extends SqliteChatDatasource {
+  _InMemoryChatDatasource() : super._native();
+
+  final List<ChatMessage> _messages = <ChatMessage>[];
+  int _nextId = 1;
+
+  int _compareById(ChatMessage a, ChatMessage b) =>
+      (a.id ?? 0).compareTo(b.id ?? 0);
+
+  @override
+  Future<List<ChatMessage>> loadAll({int? limit}) async {
+    final List<ChatMessage> sorted = List<ChatMessage>.from(_messages)
+      ..sort(_compareById);
+    if (limit == null || sorted.length <= limit) {
+      return List<ChatMessage>.unmodifiable(sorted);
+    }
+    return List<ChatMessage>.unmodifiable(sorted.take(limit));
+  }
+
+  @override
+  Future<List<ChatMessage>> loadRecent({required int limit}) async {
+    final List<ChatMessage> sorted = List<ChatMessage>.from(_messages)
+      ..sort(_compareById);
+    if (sorted.length <= limit) return List<ChatMessage>.unmodifiable(sorted);
+    return List<ChatMessage>.unmodifiable(
+      sorted.sublist(sorted.length - limit),
+    );
+  }
+
+  @override
+  Future<ChatMessage> insert(ChatMessage message) async {
+    final ChatMessage saved = message.copyWith(id: _nextId++);
+    _messages.add(saved);
+    return saved;
+  }
+
+  @override
+  Future<void> setRemoteId({
+    required int localId,
+    required String remoteId,
+  }) async {
+    final int idx = _messages.indexWhere((ChatMessage m) => m.id == localId);
+    if (idx == -1) return;
+    _messages[idx] = _messages[idx].copyWith(remoteId: remoteId);
+  }
+
+  @override
+  Future<void> clear() async {
+    _messages.clear();
+    _nextId = 1;
+  }
+
+  @override
+  Future<void> dispose() async {
+    _messages.clear();
+    _nextId = 1;
   }
 }

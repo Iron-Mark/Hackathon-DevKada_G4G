@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:fpdart/fpdart.dart';
 import 'package:tflite_web/tflite_web.dart';
 
+import 'package:kudlit_ph/core/error/failures.dart';
 import 'package:kudlit_ph/features/scanner/data/datasources/web_tflite_model_runtime.dart';
 import 'package:kudlit_ph/features/scanner/data/datasources/web_vision_model_url_resolver.dart';
 import 'package:kudlit_ph/features/scanner/data/datasources/web_yolo_output_parser.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
+import 'package:kudlit_ph/features/scanner/domain/failures/scanner_failures.dart';
 import 'package:kudlit_ph/features/scanner/domain/repositories/baybayin_detector.dart';
 
 const List<String> kBaybayinWebYoloLabels = <String>[
@@ -58,10 +61,22 @@ class WebTfliteBaybayinDetector implements BaybayinDetector {
   Stream<List<BaybayinDetection>> get detections => _detections.stream;
 
   @override
-  Future<List<BaybayinDetection>> detectImage(Uint8List imageBytes) async {
-    final TFLiteModel model = await _loadModel();
+  Future<Either<Failure, List<BaybayinDetection>>> detectImage(
+    Uint8List imageBytes,
+  ) async {
+    final TFLiteModel model;
+    try {
+      model = await _loadModel();
+    } on StateError catch (e) {
+      return left(ScannerFailures.init(e.message));
+    } catch (e) {
+      return left(ScannerFailures.init(e.toString()));
+    }
+
     if (model.inputs.isEmpty) {
-      throw StateError('The web scanner model has no input tensor.');
+      return left(
+        ScannerFailures.init('The web scanner model has no input tensor.'),
+      );
     }
     final ModelTensorInfo inputInfo = model.inputs.first;
     final List<int> inputShape = resolvedWebInputShape(inputInfo.shape);
@@ -89,7 +104,11 @@ class WebTfliteBaybayinDetector implements BaybayinDetector {
       if (!_detections.isClosed) {
         _detections.add(detections);
       }
-      return detections;
+      return right(detections);
+    } on StateError catch (e) {
+      return left(ScannerFailures.inference(e.message));
+    } catch (e) {
+      return left(ScannerFailures.inference(e.toString()));
     } finally {
       input.dispose();
       for (final Tensor tensor in outputTensors) {
@@ -128,7 +147,7 @@ class WebTfliteBaybayinDetector implements BaybayinDetector {
   }
 
   @override
-  Future<Uint8List?> captureFrame() async => null;
+  Future<Either<Failure, Uint8List?>> captureFrame() async => right(null);
 
   Future<TFLiteModel> _loadModel() async {
     final String? modelUrl = await modelUrlResolver();
@@ -145,16 +164,25 @@ class WebTfliteBaybayinDetector implements BaybayinDetector {
   }
 
   @override
-  Future<void> toggleTorch({required bool enabled}) async {}
+  Future<Either<Failure, Unit>> toggleTorch({required bool enabled}) async =>
+      left(
+        ScannerFailures.webUnsupported(
+          'Torch is not available on the web scanner.',
+        ),
+      );
 
   @override
-  Future<void> switchCamera() async {}
+  Future<Either<Failure, Unit>> switchCamera() async => left(
+    ScannerFailures.webUnsupported(
+      'Camera switching is not available on the web scanner.',
+    ),
+  );
 
   @override
-  Future<void> pauseInference() async {}
+  Future<Either<Failure, Unit>> pauseInference() async => right(unit);
 
   @override
-  Future<void> resumeInference() async {}
+  Future<Either<Failure, Unit>> resumeInference() async => right(unit);
 
   @override
   void dispose() {

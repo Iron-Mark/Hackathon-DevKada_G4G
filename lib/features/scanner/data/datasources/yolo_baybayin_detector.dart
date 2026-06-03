@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 
+import 'package:kudlit_ph/core/error/failures.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
+import 'package:kudlit_ph/features/scanner/domain/failures/scanner_failures.dart';
 import 'package:kudlit_ph/features/scanner/domain/repositories/baybayin_detector.dart';
 
 typedef SingleImageYoloFactory = YOLO Function(String modelPath);
@@ -63,28 +66,43 @@ class YoloBaybayinDetector implements BaybayinDetector {
   Stream<List<BaybayinDetection>> get detections => _streamController.stream;
 
   @override
-  Future<List<BaybayinDetection>> detectImage(Uint8List imageBytes) async {
-    final YOLO yolo = await _singleImageModel();
-    final Map<String, dynamic> result = await yolo.predict(
-      imageBytes,
-      confidenceThreshold: _kConfidenceThreshold,
-      iouThreshold: _kIoUThreshold,
-    );
-    final List<BaybayinDetection> detections =
-        (result['detections'] as List<dynamic>? ?? const <dynamic>[])
-            .whereType<Map<dynamic, dynamic>>()
-            .map(YOLOResult.fromMap)
-            .where(_isUsefulStillImageResult)
-            .map(_toDetection)
-            .toList(growable: false);
-    if (!_streamController.isClosed) {
-      _streamController.add(detections);
+  Future<Either<Failure, List<BaybayinDetection>>> detectImage(
+    Uint8List imageBytes,
+  ) async {
+    try {
+      final YOLO yolo = await _singleImageModel();
+      final Map<String, dynamic> result = await yolo.predict(
+        imageBytes,
+        confidenceThreshold: _kConfidenceThreshold,
+        iouThreshold: _kIoUThreshold,
+      );
+      final List<BaybayinDetection> detections =
+          (result['detections'] as List<dynamic>? ?? const <dynamic>[])
+              .whereType<Map<dynamic, dynamic>>()
+              .map(YOLOResult.fromMap)
+              .where(_isUsefulStillImageResult)
+              .map(_toDetection)
+              .toList(growable: false);
+      if (!_streamController.isClosed) {
+        _streamController.add(detections);
+      }
+      return right(detections);
+    } on StateError catch (e) {
+      return left(ScannerFailures.init(e.message));
+    } catch (e) {
+      return left(ScannerFailures.inference(e.toString()));
     }
-    return detections;
   }
 
   @override
-  Future<Uint8List?> captureFrame() => _controller.captureFrame();
+  Future<Either<Failure, Uint8List?>> captureFrame() async {
+    try {
+      final Uint8List? frame = await _controller.captureFrame();
+      return right(frame);
+    } catch (e) {
+      return left(ScannerFailures.capture(e.toString()));
+    }
+  }
 
   Future<YOLO> _singleImageModel() async {
     final Future<String> Function()? resolver = modelPathResolver;
@@ -146,17 +164,44 @@ class YoloBaybayinDetector implements BaybayinDetector {
   }
 
   @override
-  Future<void> toggleTorch({required bool enabled}) =>
-      _controller.setTorchMode(enabled);
+  Future<Either<Failure, Unit>> toggleTorch({required bool enabled}) async {
+    try {
+      await _controller.setTorchMode(enabled);
+      return right(unit);
+    } catch (e) {
+      return left(ScannerFailures.cameraControl(e.toString()));
+    }
+  }
 
   @override
-  Future<void> switchCamera() => _controller.switchCamera();
+  Future<Either<Failure, Unit>> switchCamera() async {
+    try {
+      await _controller.switchCamera();
+      return right(unit);
+    } catch (e) {
+      return left(ScannerFailures.cameraControl(e.toString()));
+    }
+  }
 
   @override
-  Future<void> pauseInference() => _controller.stop();
+  Future<Either<Failure, Unit>> pauseInference() async {
+    try {
+      await _controller.stop();
+      return right(unit);
+    } catch (e) {
+      return left(ScannerFailures.cameraControl(e.toString()));
+    }
+  }
 
   @override
-  Future<void> resumeInference() => _controller.restartCamera();
+  Future<Either<Failure, Unit>> resumeInference() async {
+    try {
+      await _controller.restartCamera();
+      return right(unit);
+    } catch (e) {
+      return left(ScannerFailures.cameraControl(e.toString()));
+    }
+  }
 
   @override
   void dispose() {

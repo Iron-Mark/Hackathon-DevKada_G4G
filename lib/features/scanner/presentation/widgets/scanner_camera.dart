@@ -5,10 +5,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 
 import 'package:kudlit_ph/app/constants.dart';
+import 'package:kudlit_ph/core/error/failures.dart';
 import 'package:kudlit_ph/features/scanner/data/datasources/yolo_baybayin_detector.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
 import 'package:kudlit_ph/features/scanner/presentation/providers/scan_tab_controller.dart';
@@ -560,17 +562,12 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
     }
 
     _setStatus(WebScannerStatus.detecting);
+    final Uint8List bytes;
     try {
       final XFile image = await controller.takePicture();
-      final Uint8List bytes = await image.readAsBytes();
-      final List<BaybayinDetection> detections = await ref
-          .read(baybayinDetectorProvider)
-          .detectImage(bytes);
-      widget.onDetections(detections);
-      _setStatus(WebScannerStatus.ready);
-      return (detections, bytes);
+      bytes = await image.readAsBytes();
     } catch (e) {
-      final ScanNotice notice = _noticeForCaptureError(e);
+      final ScanNotice notice = _noticeForCaptureError(e.toString());
       _setStatus(
         notice.title == 'Web model unavailable'
             ? WebScannerStatus.modelUnavailable
@@ -579,10 +576,41 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
       );
       throw ScanCaptureException(notice);
     }
+
+    final Either<Failure, List<BaybayinDetection>> result = await ref
+        .read(baybayinDetectorProvider)
+        .detectImage(bytes);
+    return result.fold(
+      (Failure failure) {
+        final ScanNotice notice = _noticeForCaptureError(
+          _failureMessage(failure),
+        );
+        _setStatus(
+          notice.title == 'Web model unavailable'
+              ? WebScannerStatus.modelUnavailable
+              : WebScannerStatus.error,
+          message: notice.message,
+        );
+        throw ScanCaptureException(notice);
+      },
+      (List<BaybayinDetection> detections) {
+        widget.onDetections(detections);
+        _setStatus(WebScannerStatus.ready);
+        return (detections, bytes);
+      },
+    );
   }
 
-  ScanNotice _noticeForCaptureError(Object error) {
-    final String raw = error.toString().toLowerCase();
+  String _failureMessage(Failure failure) {
+    return switch (failure) {
+      NetworkFailure(:final String message) => message,
+      UnknownFailure(:final String message) => message,
+      _ => failure.toString(),
+    };
+  }
+
+  ScanNotice _noticeForCaptureError(String error) {
+    final String raw = error.toLowerCase();
     if (raw.contains('404') ||
         raw.contains('not_found') ||
         raw.contains('object not found')) {

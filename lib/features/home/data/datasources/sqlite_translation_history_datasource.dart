@@ -1,11 +1,23 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import 'package:kudlit_ph/core/error/exceptions.dart';
 import 'package:kudlit_ph/features/home/domain/entities/translation_result.dart';
 
+/// SQLite-backed translation history store.
+///
+/// On web, where `sqflite` is unavailable, this resolves to an in-memory
+/// implementation that keeps translation history for the current browser
+/// session only. Supabase sync still provides cross-session persistence for
+/// authenticated users.
 class SqliteTranslationHistoryDatasource {
-  SqliteTranslationHistoryDatasource();
+  factory SqliteTranslationHistoryDatasource() {
+    if (kIsWeb) return _InMemoryTranslationHistoryDatasource();
+    return SqliteTranslationHistoryDatasource._native();
+  }
+
+  SqliteTranslationHistoryDatasource._native();
 
   static const String _dbName = 'kudlit_translations.db';
   static const int _dbVersion = 1;
@@ -128,5 +140,63 @@ class SqliteTranslationHistoryDatasource {
       isBookmarked: (row['is_bookmarked'] as int) == 1,
       timestamp: DateTime.fromMillisecondsSinceEpoch(row['timestamp'] as int),
     );
+  }
+}
+
+/// Web fallback: session-scoped in-memory translation history. Data is lost
+/// on page reload — Supabase sync gives cross-session persistence for
+/// authenticated users.
+class _InMemoryTranslationHistoryDatasource
+    extends SqliteTranslationHistoryDatasource {
+  _InMemoryTranslationHistoryDatasource() : super._native();
+
+  final Map<int, TranslationResult> _byId = <int, TranslationResult>{};
+  int _nextId = 1;
+
+  @override
+  Future<List<TranslationResult>> loadAll({int? limit}) async {
+    final List<TranslationResult> sorted = _byId.values.toList()
+      ..sort(
+        (TranslationResult a, TranslationResult b) =>
+            (b.id ?? 0).compareTo(a.id ?? 0),
+      );
+    if (limit == null || sorted.length <= limit) {
+      return List<TranslationResult>.unmodifiable(sorted);
+    }
+    return List<TranslationResult>.unmodifiable(sorted.take(limit));
+  }
+
+  @override
+  Future<TranslationResult> insert(TranslationResult result) async {
+    final int id = _nextId++;
+    final TranslationResult saved = result.copyWith(id: id);
+    _byId[id] = saved;
+    return saved;
+  }
+
+  @override
+  Future<void> updateBookmark(int id, bool value) async {
+    final TranslationResult? existing = _byId[id];
+    if (existing == null) return;
+    _byId[id] = existing.copyWith(isBookmarked: value);
+  }
+
+  @override
+  Future<void> updateAiResponse(int id, String aiResponse) async {
+    final TranslationResult? existing = _byId[id];
+    if (existing == null) return;
+    _byId[id] = existing.copyWith(aiResponse: aiResponse);
+  }
+
+  @override
+  Future<void> clear() async {
+    _byId.clear();
+    _nextId = 1;
+  }
+
+  @override
+  Future<void> dispose() async {
+    _byId.clear();
+    _nextId = 1;
   }
 }

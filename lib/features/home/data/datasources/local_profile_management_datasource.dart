@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -24,7 +25,12 @@ abstract interface class LocalProfileManagementDatasource {
 
 class SqfliteProfileManagementDatasource
     implements LocalProfileManagementDatasource {
-  SqfliteProfileManagementDatasource();
+  factory SqfliteProfileManagementDatasource() {
+    if (kIsWeb) return _WebProfileManagementDatasource();
+    return SqfliteProfileManagementDatasource._native();
+  }
+
+  SqfliteProfileManagementDatasource._native();
 
   static const String _dbName = 'kudlit_profile.db';
   static const int _dbVersion = 2;
@@ -214,4 +220,65 @@ class SqfliteProfileManagementDatasource
       dataSharingConsent: (row['data_sharing_consent'] as int) == 1,
     );
   }
+}
+
+/// Web fallback: graceful no-op cache. `ProfileManagementRepositoryImpl`
+/// already treats the local layer as a best-effort cache with a remote
+/// fallback, so always-miss reads + silent writes keep web functional —
+/// every read just hits Supabase. We log the first cache miss so the
+/// degraded mode is discoverable in DevTools.
+class _WebProfileManagementDatasource extends SqfliteProfileManagementDatasource
+    implements LocalProfileManagementDatasource {
+  _WebProfileManagementDatasource() : super._native();
+
+  bool _loggedDegradedMode = false;
+
+  void _logOnce() {
+    if (_loggedDegradedMode) return;
+    _loggedDegradedMode = true;
+    debugPrint(
+      '[ProfileManagement] sqflite unavailable on web — '
+      'profile cache disabled, reads will fall through to Supabase.',
+    );
+  }
+
+  @override
+  Future<ProfileSummaryModel?> getCachedSummary({
+    required String userId,
+  }) async {
+    _logOnce();
+    return null;
+  }
+
+  @override
+  Future<void> cacheSummary({
+    required String userId,
+    required ProfileSummaryModel summary,
+  }) async {
+    _logOnce();
+  }
+
+  @override
+  Future<void> clearCachedSummary({required String userId}) async {
+    _logOnce();
+  }
+
+  @override
+  Future<ProfilePreferencesModel?> getCachedPreferences({
+    required String userId,
+  }) async {
+    _logOnce();
+    return null;
+  }
+
+  @override
+  Future<void> cachePreferences({
+    required String userId,
+    required ProfilePreferencesModel preferences,
+  }) async {
+    _logOnce();
+  }
+
+  @override
+  Future<void> dispose() async {}
 }

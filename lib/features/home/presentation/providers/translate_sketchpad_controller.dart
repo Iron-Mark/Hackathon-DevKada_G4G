@@ -117,6 +117,13 @@ class TranslateSketchpadController extends Notifier<TranslateSketchpadState> {
     final StringBuffer buffer = StringBuffer();
     bool localFailed = false;
     try {
+      // Prime + reactivate the offline model the same way Butty does
+      // (its mode selector reads this readiness provider). The sketchpad
+      // vision path calls `analyzeImage` directly, so without this the
+      // native engine has no active model after a restart and
+      // `getActiveModel()` throws — silently dropping to cloud. The probe
+      // is coalesced/fast-pathed, so this is cheap once warm.
+      await ref.read(localModelReadinessProvider.future);
       await for (final String chunk
           in ref
               .read(localGemmaDatasourceProvider)
