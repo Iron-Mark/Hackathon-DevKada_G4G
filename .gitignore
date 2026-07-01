@@ -58,6 +58,9 @@ package-lock.json
 # Claude Code memory (local only)
 .claude/
 
+# Codex local config
+.codex/
+
 # Supabase local temp files
 supabase/.temp/
 
