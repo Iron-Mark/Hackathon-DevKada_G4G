@@ -24,10 +24,9 @@ class ProfileManagementCard extends StatelessWidget {
         for (int i = 0; i < items.length; i++) ...<Widget>[
           ProfileManagementTile(
             item: items[i],
-            isPrimaryLoading: loadingActions.contains(
-              items[i].primaryActionId,
-            ),
-            isSecondaryLoading: items[i].secondaryActionId != null &&
+            isPrimaryLoading: loadingActions.contains(items[i].primaryActionId),
+            isSecondaryLoading:
+                items[i].secondaryActionId != null &&
                 loadingActions.contains(items[i].secondaryActionId!),
             onPrimaryTap: () => onAction(
               items[i].primaryActionId,

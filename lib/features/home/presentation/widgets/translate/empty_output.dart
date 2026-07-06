@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
 class EmptyOutput extends StatelessWidget {
-  const EmptyOutput({super.key});
+  const EmptyOutput({
+    super.key,
+    this.message = 'Type below to preview Baybayin',
+    this.icon = Icons.text_fields_rounded,
+  });
+
+  final String message;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -13,14 +20,10 @@ class EmptyOutput extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(
-              Icons.text_fields_rounded,
-              size: 34,
-              color: cs.onSurface.withAlpha(120),
-            ),
-            const SizedBox(height: 10),
+            Icon(icon, size: 32, color: cs.onSurface.withAlpha(120)),
+            const SizedBox(height: 8),
             Text(
-              'Type or speak below\nto see Baybayin',
+              message,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13.5,

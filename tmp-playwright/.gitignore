@@ -1,0 +1,14 @@
+qa-artifact/
+test-results/
+tmp/
+node_modules/
+package-lock.json
+*.png
+*.json
+check-*.js
+debug-*.js
+inspect-*.js
+long-load-probe.js
+network-check.js
+selector-probe*.js
+tmp*.js

@@ -15,11 +15,11 @@ final Provider<SqliteChatMemoryDatasource> sqliteChatMemoryDatasourceProvider =
     });
 
 final Provider<SupabaseChatMemoryDatasource>
-supabaseChatMemoryDatasourceProvider = Provider<SupabaseChatMemoryDatasource>(
-  (Ref ref) {
-    return SupabaseChatMemoryDatasource(ref.watch(supabaseProvider));
-  },
-);
+supabaseChatMemoryDatasourceProvider = Provider<SupabaseChatMemoryDatasource>((
+  Ref ref,
+) {
+  return SupabaseChatMemoryDatasource(ref.watch(supabaseProvider));
+});
 
 final Provider<ChatMemoryRepository> chatMemoryRepositoryProvider =
     Provider<ChatMemoryRepository>((Ref ref) {

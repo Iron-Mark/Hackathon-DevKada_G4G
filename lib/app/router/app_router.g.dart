@@ -6,7 +6,6 @@ part of 'app_router.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-
 /// See also [appRouter].
 @ProviderFor(appRouter)
 final appRouterProvider = Provider<GoRouter>.internal(

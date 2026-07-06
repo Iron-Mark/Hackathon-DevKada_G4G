@@ -41,72 +41,69 @@ class LessonCard extends ConsumerWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final LessonStatus status = progress?.status ?? LessonStatus.notStarted;
 
-    return Opacity(
-      opacity: isLocked ? 0.55 : 1.0,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isLocked ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cs.outline),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Stack(
-              children: <Widget>[
-                LessonCardInfo(
-                  index: index,
-                  title: title,
-                  subtitle: subtitle,
-                  glyphCount: glyphCount,
-                  estimatedLength: estimatedLength,
-                  status: _statusLabel(status, isLocked),
-                  isLocked: isLocked,
-                ),
-                if (status != LessonStatus.notStarted && !isLocked)
-                  Positioned(
-                    top: 12,
-                    right: 14,
-                    child: _ProgressBadge(
-                      status: status,
-                      progress: progress,
-                      cs: cs,
-                    ),
-                  ),
-              ],
-            ),
-            if (items.isNotEmpty) GlyphPreviewRow(items: items),
-            if (status == LessonStatus.inProgress && progress != null)
-              _ProgressBar(fraction: progress!.progressFraction, cs: cs),
-            BeginButton(
-              onStart: onStart,
-              isLocked: isLocked,
-              lockedReason: lockedReason,
-              label: _buttonLabel(status),
-            ),
-            if (status == LessonStatus.completed && !isLocked)
-              _RestartButton(
-                cs: cs,
-                onRestart: () {
-                  unawaited(
-                    ref
-                        .read(lessonProgressNotifierProvider.notifier)
-                        .saveProgress(
-                          LessonProgress(
-                            lessonId: progress!.lessonId,
-                            currentStepIndex: 0,
-                            totalSteps: progress!.totalSteps,
-                            completed: false,
-                            score: 0,
-                            lastModified: DateTime.now(),
-                          ),
-                        ),
-                  );
-                  onStart();
-                },
+    return Container(
+      decoration: BoxDecoration(
+        color: isLocked ? cs.surfaceContainerHigh : cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isLocked ? cs.outlineVariant : cs.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Stack(
+            children: <Widget>[
+              LessonCardInfo(
+                index: index,
+                title: title,
+                subtitle: subtitle,
+                glyphCount: glyphCount,
+                estimatedLength: estimatedLength,
+                status: _statusLabel(status, isLocked),
+                isLocked: isLocked,
               ),
-          ],
-        ),
+              if (status != LessonStatus.notStarted && !isLocked)
+                Positioned(
+                  top: 12,
+                  right: 14,
+                  child: _ProgressBadge(
+                    status: status,
+                    progress: progress,
+                    cs: cs,
+                  ),
+                ),
+            ],
+          ),
+          if (items.isNotEmpty) GlyphPreviewRow(items: items, muted: isLocked),
+          if (status == LessonStatus.inProgress && progress != null)
+            _ProgressBar(fraction: progress!.progressFraction, cs: cs),
+          BeginButton(
+            onStart: onStart,
+            isLocked: isLocked,
+            lockedReason: lockedReason,
+            label: _buttonLabel(status),
+          ),
+          if (status == LessonStatus.completed && !isLocked)
+            _RestartButton(
+              cs: cs,
+              onRestart: () {
+                unawaited(
+                  ref
+                      .read(lessonProgressNotifierProvider.notifier)
+                      .saveProgress(
+                        LessonProgress(
+                          lessonId: progress!.lessonId,
+                          currentStepIndex: 0,
+                          totalSteps: progress!.totalSteps,
+                          completed: false,
+                          score: 0,
+                          lastModified: DateTime.now(),
+                        ),
+                      ),
+                );
+                onStart();
+              },
+            ),
+        ],
       ),
     );
   }
@@ -149,9 +146,10 @@ class _ProgressBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool done = status == LessonStatus.completed;
-    final Color fgColor = done
-        ? const Color(0xFF46B986)
-        : const Color(0xFFF5A623);
+    final Color fgColor = done ? cs.primary : cs.tertiary;
+    final Color bgColor = done
+        ? cs.primaryContainer.withAlpha(90)
+        : cs.tertiaryContainer.withAlpha(90);
     final String label = done
         ? '${progress?.score ?? 0}%'
         : 'Step ${(progress?.currentStepIndex ?? 0) + 1} / ${progress?.totalSteps ?? 0}';
@@ -159,7 +157,7 @@ class _ProgressBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: fgColor.withAlpha(30),
+        color: bgColor,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: fgColor.withAlpha(80)),
       ),
@@ -200,7 +198,7 @@ class _ProgressBar extends StatelessWidget {
           value: fraction,
           minHeight: 4,
           backgroundColor: cs.surfaceContainerHighest,
-          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF5A623)),
+          valueColor: AlwaysStoppedAnimation<Color>(cs.tertiary),
         ),
       ),
     );

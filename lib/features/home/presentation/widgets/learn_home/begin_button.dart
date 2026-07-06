@@ -17,40 +17,49 @@ class BeginButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          FilledButton.icon(
-            onPressed: isLocked ? null : onStart,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(44),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool compactWidth = constraints.maxWidth < 420;
+        final double trailingClearance = isLocked && compactWidth ? 78 : 16;
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 6, trailingClearance, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              FilledButton.icon(
+                onPressed: isLocked ? null : onStart,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                  disabledBackgroundColor: cs.surfaceContainerHighest,
+                  disabledForegroundColor: cs.onSurface.withValues(alpha: 0.58),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: Icon(
+                  isLocked ? Icons.lock_rounded : Icons.play_arrow_rounded,
+                  size: 18,
+                ),
+                label: Text(isLocked ? 'Locked' : label),
               ),
-            ),
-            icon: Icon(
-              isLocked ? Icons.lock_rounded : Icons.play_arrow_rounded,
-              size: 18,
-            ),
-            label: Text(isLocked ? 'Locked' : label),
+              if (isLocked && lockedReason != null) ...<Widget>[
+                const SizedBox(height: 8),
+                Text(
+                  lockedReason!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurface.withValues(alpha: 0.62),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
           ),
-          if (isLocked && lockedReason != null) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(
-              lockedReason!,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: cs.onSurface.withValues(alpha: 0.62),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 }

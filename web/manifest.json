@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#0E1425",
     "theme_color": "#0E1425",
-    "description": "Baybayin script translator and learning app.",
+    "description": "Kudlit is a mobile-first Baybayin scanner, translator, and learning companion for Filipino culture and literacy.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

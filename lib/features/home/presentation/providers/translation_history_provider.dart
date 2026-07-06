@@ -64,9 +64,10 @@ class TranslationHistoryNotifier
       saved = await _ds.insert(result);
       final List<TranslationResult> current =
           state.value ?? <TranslationResult>[];
-      state = AsyncData<List<TranslationResult>>(
-        <TranslationResult>[saved, ...current],
-      );
+      state = AsyncData<List<TranslationResult>>(<TranslationResult>[
+        saved,
+        ...current,
+      ]);
     } catch (_) {
       // Local save failure is non-fatal
     }
@@ -104,9 +105,10 @@ class TranslationHistoryNotifier
         await _ds.updateAiResponse(latest.id!, text);
       } catch (_) {}
     }
-    state = AsyncData<List<TranslationResult>>(
-      <TranslationResult>[updated, ...current.skip(1)],
-    );
+    state = AsyncData<List<TranslationResult>>(<TranslationResult>[
+      updated,
+      ...current.skip(1),
+    ]);
   }
 
   Future<void> clearHistory() async {
@@ -156,17 +158,19 @@ class TranslationHistoryNotifier
         .order('created_at', ascending: false)
         .limit(100);
 
-    return rows.map((dynamic row) {
-      final Map<String, dynamic> r = row as Map<String, dynamic>;
-      return TranslationResult(
-        inputText: r['input_text'] as String? ?? '',
-        baybayinText: r['output_baybayin'] as String? ?? '',
-        latinText: r['output_latin'] as String? ?? '',
-        direction: r['direction'] as String? ?? 'latin_to_baybayin',
-        aiResponse: r['ai_response'] as String? ?? '',
-        isBookmarked: r['is_bookmarked'] as bool? ?? false,
-        timestamp: DateTime.parse(r['created_at'] as String),
-      );
-    }).toList(growable: false);
+    return rows
+        .map((dynamic row) {
+          final Map<String, dynamic> r = row as Map<String, dynamic>;
+          return TranslationResult(
+            inputText: r['input_text'] as String? ?? '',
+            baybayinText: r['output_baybayin'] as String? ?? '',
+            latinText: r['output_latin'] as String? ?? '',
+            direction: r['direction'] as String? ?? 'latin_to_baybayin',
+            aiResponse: r['ai_response'] as String? ?? '',
+            isBookmarked: r['is_bookmarked'] as bool? ?? false,
+            timestamp: DateTime.parse(r['created_at'] as String),
+          );
+        })
+        .toList(growable: false);
   }
 }

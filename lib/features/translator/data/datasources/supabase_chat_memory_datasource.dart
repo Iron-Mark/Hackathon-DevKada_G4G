@@ -16,25 +16,25 @@ class SupabaseChatMemoryDatasource {
     try {
       final List<dynamic> rows = await _client
           .from(_table)
-          .select(
-            'id, fact_type, content, created_at, last_referenced_at',
-          )
+          .select('id, fact_type, content, created_at, last_referenced_at')
           .eq('user_id', userId)
           .order('created_at', ascending: false)
           .limit(limit);
 
-      return rows.map((dynamic raw) {
-        final Map<String, dynamic> r = raw as Map<String, dynamic>;
-        return ChatMemoryFact(
-          remoteId: r['id'] as String?,
-          factType: r['fact_type'] as String? ?? 'general',
-          content: r['content'] as String? ?? '',
-          createdAt: DateTime.parse(r['created_at'] as String),
-          lastReferencedAt: DateTime.parse(
-            r['last_referenced_at'] as String,
-          ),
-        );
-      }).toList(growable: false);
+      return rows
+          .map((dynamic raw) {
+            final Map<String, dynamic> r = raw as Map<String, dynamic>;
+            return ChatMemoryFact(
+              remoteId: r['id'] as String?,
+              factType: r['fact_type'] as String? ?? 'general',
+              content: r['content'] as String? ?? '',
+              createdAt: DateTime.parse(r['created_at'] as String),
+              lastReferencedAt: DateTime.parse(
+                r['last_referenced_at'] as String,
+              ),
+            );
+          })
+          .toList(growable: false);
     } catch (e) {
       debugPrint('[ChatMemory] Supabase fetch failed (non-fatal): $e');
       return const <ChatMemoryFact>[];

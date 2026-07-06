@@ -18,9 +18,15 @@ class ProfileStatsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        Expanded(child: _Stat(count: lessons, label: 'Lessons')),
-        Expanded(child: _Stat(count: scans, label: 'Scans')),
-        Expanded(child: _Stat(count: translations, label: 'Translated')),
+        Expanded(
+          child: _Stat(count: lessons, label: 'Lessons'),
+        ),
+        Expanded(
+          child: _Stat(count: scans, label: 'Scans'),
+        ),
+        Expanded(
+          child: _Stat(count: translations, label: 'Translated'),
+        ),
       ],
     );
   }

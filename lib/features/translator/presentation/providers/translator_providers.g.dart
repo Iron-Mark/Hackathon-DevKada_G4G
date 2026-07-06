@@ -48,7 +48,6 @@ final supabaseGemmaModelsDatasourceProvider =
 // ignore: unused_element
 typedef SupabaseAiModelsDatasourceRef = Ref;
 
-
 @ProviderFor(localGemmaDatasource)
 final localGemmaDatasourceProvider = Provider<LocalGemmaDatasource>.internal(
   localGemmaDatasource,
@@ -64,7 +63,6 @@ final localGemmaDatasourceProvider = Provider<LocalGemmaDatasource>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef LocalGemmaDatasourceRef = Ref;
-
 
 @ProviderFor(cloudGemmaDatasource)
 final cloudGemmaDatasourceProvider = Provider<CloudGemmaDatasource>.internal(
@@ -82,7 +80,6 @@ final cloudGemmaDatasourceProvider = Provider<CloudGemmaDatasource>.internal(
 // ignore: unused_element
 typedef CloudGemmaDatasourceRef = Ref;
 
-
 @ProviderFor(sqliteChatDatasource)
 final sqliteChatDatasourceProvider = Provider<SqliteChatDatasource>.internal(
   sqliteChatDatasource,
@@ -98,7 +95,6 @@ final sqliteChatDatasourceProvider = Provider<SqliteChatDatasource>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SqliteChatDatasourceRef = Ref;
-
 
 @ProviderFor(aiInferenceRepository)
 final aiInferenceRepositoryProvider = Provider<AiInferenceRepository>.internal(

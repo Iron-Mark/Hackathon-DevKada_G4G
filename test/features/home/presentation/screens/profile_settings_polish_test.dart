@@ -14,6 +14,7 @@ import 'package:kudlit_ph/features/home/presentation/widgets/settings/profile_ma
 import 'package:kudlit_ph/features/home/presentation/widgets/settings/segmented_picker.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/settings/settings_list.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/settings/sign_out_tile.dart';
+import 'package:kudlit_ph/features/home/presentation/widgets/settings/theme_row.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class _FakeProfileSummaryNotifier extends ProfileSummaryNotifier {
@@ -410,6 +411,34 @@ void main() {
       semantics.dispose();
     },
   );
+
+  testWidgets('settings preference controls stack on narrow cards', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 593));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 288,
+                child: ThemeRow(current: ThemeMode.system),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final Rect label = tester.getRect(find.text('App theme'));
+    final Rect pickerOption = tester.getRect(find.text('System'));
+
+    expect(pickerOption.top, greaterThan(label.bottom));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('sign out tile uses a labeled material tap target', (
     tester,

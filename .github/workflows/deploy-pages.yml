@@ -47,8 +47,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Flutter web
-        run: flutter build web --release --base-href "/kudlit-app/"
+      - name: Build SEO landing and Flutter web app
+        run: bash build.sh
+        env:
+          PUBLIC_SITE_URL: https://acsadians.github.io/kudlit-app
+          APP_BASE_PATH: /kudlit-app/app/
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HUGGINGFACE_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

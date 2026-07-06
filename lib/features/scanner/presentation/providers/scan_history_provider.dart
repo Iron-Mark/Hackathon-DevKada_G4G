@@ -9,12 +9,14 @@ import 'package:kudlit_ph/features/home/presentation/providers/profile_managemen
 import 'package:kudlit_ph/features/scanner/data/datasources/sqlite_scan_history_datasource.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/scan_result.dart';
 
-final Provider<SqliteScanHistoryDatasource> sqliteScanHistoryDatasourceProvider =
-    Provider<SqliteScanHistoryDatasource>((Ref ref) {
-      final SqliteScanHistoryDatasource ds = SqliteScanHistoryDatasource();
-      ref.onDispose(ds.dispose);
-      return ds;
-    });
+final Provider<SqliteScanHistoryDatasource>
+sqliteScanHistoryDatasourceProvider = Provider<SqliteScanHistoryDatasource>((
+  Ref ref,
+) {
+  final SqliteScanHistoryDatasource ds = SqliteScanHistoryDatasource();
+  ref.onDispose(ds.dispose);
+  return ds;
+});
 
 final AsyncNotifierProvider<ScanHistoryNotifier, List<ScanResult>>
 scanHistoryNotifierProvider =
@@ -101,17 +103,20 @@ class ScanHistoryNotifier extends AsyncNotifier<List<ScanResult>> {
         .order('scanned_at', ascending: false)
         .limit(100);
 
-    return rows.map((dynamic row) {
-      final Map<String, dynamic> r = row as Map<String, dynamic>;
-      final dynamic rawTokens = r['tokens'];
-      final List<String> tokens = rawTokens is List
-          ? rawTokens.cast<String>()
-          : (jsonDecode(rawTokens as String) as List<dynamic>).cast<String>();
-      return ScanResult(
-        tokens: tokens,
-        translation: r['translation'] as String? ?? '',
-        timestamp: DateTime.parse(r['scanned_at'] as String),
-      );
-    }).toList(growable: false);
+    return rows
+        .map((dynamic row) {
+          final Map<String, dynamic> r = row as Map<String, dynamic>;
+          final dynamic rawTokens = r['tokens'];
+          final List<String> tokens = rawTokens is List
+              ? rawTokens.cast<String>()
+              : (jsonDecode(rawTokens as String) as List<dynamic>)
+                    .cast<String>();
+          return ScanResult(
+            tokens: tokens,
+            translation: r['translation'] as String? ?? '',
+            timestamp: DateTime.parse(r['scanned_at'] as String),
+          );
+        })
+        .toList(growable: false);
   }
 }

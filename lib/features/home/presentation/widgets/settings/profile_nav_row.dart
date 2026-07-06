@@ -28,8 +28,8 @@ class ProfileNavRow extends StatelessWidget {
     final Color fg = isDestructive
         ? cs.error
         : isSoon
-            ? cs.onSurface.withAlpha(110)
-            : cs.onSurface;
+        ? cs.onSurface.withAlpha(110)
+        : cs.onSurface;
 
     return InkWell(
       onTap: onTap,

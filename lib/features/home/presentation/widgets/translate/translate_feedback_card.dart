@@ -119,10 +119,7 @@ MarkdownStyleSheet _cardMarkdownStyle(ColorScheme cs) {
     strong: base.copyWith(fontWeight: FontWeight.w700),
     em: base.copyWith(fontStyle: FontStyle.italic),
     listBullet: base,
-    a: base.copyWith(
-      color: cs.primary,
-      decoration: TextDecoration.underline,
-    ),
+    a: base.copyWith(color: cs.primary, decoration: TextDecoration.underline),
     code: base.copyWith(
       fontFamily: 'monospace',
       fontSize: 12,

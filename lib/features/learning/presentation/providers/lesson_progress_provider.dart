@@ -49,9 +49,7 @@ class LessonProgressNotifier
             return _toMap(remote);
           }
         } catch (e) {
-          debugPrint(
-            '[LessonProgress] cloud restore failed (non-fatal): $e',
-          );
+          debugPrint('[LessonProgress] cloud restore failed (non-fatal): $e');
         }
       }
     }
@@ -97,20 +95,17 @@ class LessonProgressNotifier
     final String? userId = client.auth.currentUser?.id;
     if (userId == null) return;
     try {
-      await client.from('learning_progress').upsert(
-        <String, dynamic>{
-          'user_id': userId,
-          'lesson_id': progress.lessonId,
-          'current_step': progress.currentStepIndex,
-          'total_steps': progress.totalSteps,
-          'completed': progress.completed,
-          'score': progress.score,
-          'updated_at': progress.lastModified.toIso8601String(),
-          if (progress.completedAt != null)
-            'completed_at': progress.completedAt!.toIso8601String(),
-        },
-        onConflict: 'user_id,lesson_id',
-      );
+      await client.from('learning_progress').upsert(<String, dynamic>{
+        'user_id': userId,
+        'lesson_id': progress.lessonId,
+        'current_step': progress.currentStepIndex,
+        'total_steps': progress.totalSteps,
+        'completed': progress.completed,
+        'score': progress.score,
+        'updated_at': progress.lastModified.toIso8601String(),
+        if (progress.completedAt != null)
+          'completed_at': progress.completedAt!.toIso8601String(),
+      }, onConflict: 'user_id,lesson_id');
     } catch (e) {
       debugPrint('[LessonProgress] Supabase sync failed (non-fatal): $e');
     }
@@ -129,22 +124,25 @@ class LessonProgressNotifier
         .order('updated_at', ascending: false)
         .limit(20);
 
-    return rows.map((dynamic row) {
-      final Map<String, dynamic> r = row as Map<String, dynamic>;
-      final String? completedAtStr = r['completed_at'] as String?;
-      final String updatedAtStr =
-          r['updated_at'] as String? ?? DateTime.now().toIso8601String();
-      return LessonProgress(
-        lessonId: r['lesson_id'] as String,
-        currentStepIndex: r['current_step'] as int? ?? 0,
-        totalSteps: r['total_steps'] as int? ?? 0,
-        completed: r['completed'] as bool? ?? false,
-        score: r['score'] as int? ?? 0,
-        lastModified: DateTime.parse(updatedAtStr),
-        completedAt:
-            completedAtStr != null ? DateTime.parse(completedAtStr) : null,
-      );
-    }).toList(growable: false);
+    return rows
+        .map((dynamic row) {
+          final Map<String, dynamic> r = row as Map<String, dynamic>;
+          final String? completedAtStr = r['completed_at'] as String?;
+          final String updatedAtStr =
+              r['updated_at'] as String? ?? DateTime.now().toIso8601String();
+          return LessonProgress(
+            lessonId: r['lesson_id'] as String,
+            currentStepIndex: r['current_step'] as int? ?? 0,
+            totalSteps: r['total_steps'] as int? ?? 0,
+            completed: r['completed'] as bool? ?? false,
+            score: r['score'] as int? ?? 0,
+            lastModified: DateTime.parse(updatedAtStr),
+            completedAt: completedAtStr != null
+                ? DateTime.parse(completedAtStr)
+                : null,
+          );
+        })
+        .toList(growable: false);
   }
 
   static Map<String, LessonProgress> _toMap(List<LessonProgress> list) {

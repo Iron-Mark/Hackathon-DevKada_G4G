@@ -93,8 +93,13 @@ class ProfileSummaryNotifier extends _$ProfileSummaryNotifier {
             .clearCachedSummary(userId: userId);
       } catch (_) {}
     }
+    // The provider can be disposed while the awaits above are in flight
+    // (e.g. the profile screen is popped). Touching `state` after disposal
+    // throws an unhandled exception, so bail out if we're no longer mounted.
+    if (!ref.mounted) return;
     state = const AsyncLoading<Option<ProfileSummary>>();
     final Option<ProfileSummary> summary = await _fetchSummary();
+    if (!ref.mounted) return;
     state = AsyncValue<Option<ProfileSummary>>.data(summary);
   }
 
@@ -106,6 +111,7 @@ class ProfileSummaryNotifier extends _$ProfileSummaryNotifier {
       UpdateDisplayNameParams(displayName: displayName),
     );
 
+    if (!ref.mounted) return;
     if (result.isLeft()) {
       state = AsyncError<Option<ProfileSummary>>(
         result.getLeft().toNullable()!,
@@ -115,6 +121,7 @@ class ProfileSummaryNotifier extends _$ProfileSummaryNotifier {
     }
 
     final summary = await _fetchSummary();
+    if (!ref.mounted) return;
     state = AsyncValue.data(summary);
   }
 
@@ -133,6 +140,7 @@ class ProfileSummaryNotifier extends _$ProfileSummaryNotifier {
       mimeType: mimeType,
     );
 
+    if (!ref.mounted) return;
     if (result.isLeft()) {
       final Failure failure = result.getLeft().toNullable()!;
       state = AsyncValue.data(previousSummary);
@@ -140,6 +148,7 @@ class ProfileSummaryNotifier extends _$ProfileSummaryNotifier {
     }
 
     final summary = await _fetchSummary();
+    if (!ref.mounted) return;
     state = AsyncValue.data(summary);
   }
 }
@@ -179,6 +188,7 @@ class ProfilePreferencesNotifier extends _$ProfilePreferencesNotifier {
       SaveProfilePreferencesParams(preferences: preferences),
     );
 
+    if (!ref.mounted) return;
     if (result.isLeft()) {
       state = AsyncError<Option<ProfilePreferences>>(
         result.getLeft().toNullable()!,
@@ -188,6 +198,7 @@ class ProfilePreferencesNotifier extends _$ProfilePreferencesNotifier {
     }
 
     final prefs = await _fetchPreferences();
+    if (!ref.mounted) return;
     state = AsyncValue.data(prefs);
   }
 }

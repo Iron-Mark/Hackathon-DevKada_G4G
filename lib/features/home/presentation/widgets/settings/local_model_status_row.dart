@@ -23,7 +23,7 @@ class LocalModelStatusRow extends ConsumerWidget {
           Expanded(
             child: stateAsync.when(
               loading: () => Text(
-                'Checking Gemma model status...',
+                'Checking offline download status...',
                 style: TextStyle(
                   color: cs.onSurface.withAlpha(150),
                   fontSize: 13,
@@ -52,24 +52,24 @@ class _StatusContent extends ConsumerWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
 
     return switch (state) {
-      AiReady(:final AiPreference mode, :final activeModel) =>
+      AiReady(:final AiPreference mode) =>
         mode == AiPreference.cloud
             ? Text(
-                'Cloud AI active — Gemma model not needed.',
+                'Internet mode is active. Offline download is optional.',
                 style: TextStyle(
                   color: cs.onSurface.withAlpha(150),
                   fontSize: 13,
                 ),
               )
             : Text(
-                '${activeModel.name} installed and ready.',
+                'Offline download is ready.',
                 style: TextStyle(
                   color: Colors.green.shade600,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-      AiLocalModelMissing(:final model, :final String? note) => Column(
+      AiLocalModelMissing(:final String? note) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
@@ -78,7 +78,7 @@ class _StatusContent extends ConsumerWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '${model.name} not installed. Requires ~1.5 GB.',
+                  'Offline replies are not downloaded yet.',
                   style: TextStyle(color: cs.error, fontSize: 13),
                 ),
               ),
@@ -102,49 +102,44 @@ class _StatusContent extends ConsumerWidget {
           ],
         ],
       ),
-      AiDownloading(
-        :final model,
-        :final progress,
-        :final String? statusMessage,
-      ) =>
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text(
-                  'Downloading ${model.name}… $progress%',
-                  style: TextStyle(color: cs.primary, fontSize: 13),
-                ),
-                InkWell(
-                  onTap: () => ref
-                      .read(aiInferenceNotifierProvider.notifier)
-                      .cancelDownload(),
-                  child: Icon(Icons.cancel_rounded, size: 16, color: cs.error),
-                ),
-              ],
-            ),
-            if (statusMessage != null) ...<Widget>[
-              const SizedBox(height: 4),
+      AiDownloading(:final progress, :final String? statusMessage) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
               Text(
-                statusMessage,
-                style: TextStyle(
-                  color: cs.onSurface.withAlpha(150),
-                  fontSize: 11,
-                ),
+                'Downloading… $progress%',
+                style: TextStyle(color: cs.primary, fontSize: 13),
+              ),
+              InkWell(
+                onTap: () => ref
+                    .read(aiInferenceNotifierProvider.notifier)
+                    .cancelDownload(),
+                child: Icon(Icons.cancel_rounded, size: 16, color: cs.error),
               ),
             ],
-            const SizedBox(height: 6),
-            LinearProgressIndicator(value: progress / 100),
+          ),
+          if (statusMessage != null) ...<Widget>[
+            const SizedBox(height: 4),
+            Text(
+              statusMessage,
+              style: TextStyle(
+                color: cs.onSurface.withAlpha(150),
+                fontSize: 11,
+              ),
+            ),
           ],
-        ),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(value: progress / 100),
+        ],
+      ),
       AiInferenceError(:final message) => Text(
-        'Gemma error: $message',
+        'Offline download error: $message',
         style: TextStyle(color: cs.error, fontSize: 13),
       ),
       _ => Text(
-        'Initializing Gemma…',
+        'Getting offline replies ready…',
         style: TextStyle(color: cs.onSurface.withAlpha(150), fontSize: 13),
       ),
     };

@@ -50,8 +50,7 @@ class ActivitySection extends ConsumerWidget {
               title: 'Learning progress',
               subtitle: 'Lessons, milestones, and streaks.',
               trailingLabel: lessons > 0 ? '$lessons done' : null,
-              onTap: () =>
-                  context.push(AppConstants.routeLearningProgress),
+              onTap: () => context.push(AppConstants.routeLearningProgress),
             ),
             const SettingsDivider(),
             ProfileNavRow(
@@ -69,8 +68,7 @@ class ActivitySection extends ConsumerWidget {
               trailingLabel: (translations > 0 || bookmarks > 0)
                   ? '$translations · $bookmarks saved'
                   : null,
-              onTap: () =>
-                  context.push(AppConstants.routeTranslationHistory),
+              onTap: () => context.push(AppConstants.routeTranslationHistory),
             ),
             const SettingsDivider(),
             ProfileNavRow(

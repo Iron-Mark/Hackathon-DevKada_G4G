@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
 import 'package:kudlit_ph/features/scanner/data/datasources/web_yolo_output_parser.dart';
 
 void main() {
@@ -57,6 +58,32 @@ void main() {
         0.1,
       ],
       shape: <int>[1, 7, 2],
+    );
+
+    expect(detections, hasLength(1));
+    expect(detections.single.label, 'ka');
+    expect(detections.single.confidence, closeTo(0.72, 0.001));
+  });
+
+  test('parses 2D web model output shape into detections', () {
+    final List<BaybayinDetection> detections = parser.parse(
+      <double>[
+        0.5,
+        0.5,
+        0.2,
+        0.2,
+        0.9,
+        0.1,
+        0.8,
+        0.1,
+        0.1,
+        0.1,
+        0.1,
+        0.4,
+        0.9,
+        0.1,
+      ],
+      shape: <int>[2, 7],
     );
 
     expect(detections, hasLength(1));

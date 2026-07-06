@@ -23,7 +23,7 @@ Based on the current directory structure (`lib/features/`):
     *   **Flows:** Splash screen initialization, settings, and main navigation tabs.
     *   **Screens:** `SplashScreen`, `ModelSetupScreen`, `HomeScreen`, `SettingsScreen`.
 *   **Scanner:** 
-    *   Contains the camera and image upload logic for Baybayin recognition (using YOLOv12 -> TFLite). Native only (Android/iOS).
+    *   Contains native camera/gallery YOLO recognition plus web webcam preview with capture-based TFLite detection from the active vision model URL.
 *   **Translator:** 
     *   Baybayin transliteration and offline language understanding (using Gemma 4).
 
@@ -45,11 +45,11 @@ The `go_router` configuration (`lib/app/router/app_router.dart`) orchestrates th
 To test the current application and flow, follow these steps:
 
 ### A. Web / Design Validation (Recommended for UI work)
-The primary target during UI and design system development is Chrome. This bypasses the native ML model constraints:
+The primary target during UI and design system development is Chrome. Web supports layout validation, auth flow checks, and scanner webcam/capture validation when a compatible web model URL is configured:
 ```bash
 flutter run -d chrome
 ```
-*Note: The native YOLO/Gemma scanner features will not work on the Web, but the Auth flow and layout responsiveness can be thoroughly tested.*
+*Note: Native-only scanner capabilities, such as torch control and local model setup, still require Android/iOS testing.*
 
 ### B. Native Emulator (Required for ML / Scanner features)
 To test the `ModelSetupScreen`, YOLO character detection, and offline Gemma translation, you must run the app natively.
@@ -65,3 +65,16 @@ flutter analyze
 dart format lib/ test/
 flutter test
 ```
+
+### D. Scan Layout Hardening
+For scan-tab overlap, clipping, and transition status regressions:
+```bash
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/scan-layout-overlap-pass.ps1
+```
+
+Latest strict artifacts are under:
+
+- `qa-artifact/scan-layout-strict-overlap/report.json`
+- `qa-artifact/scan-layout-strict-overlap/scan-layout-overlap-contact-sheet.html`
+- `qa-artifact/scan-layout-strict-overlap/matrix/`
+- `qa-artifact/scan-layout-strict-overlap/transitions/`

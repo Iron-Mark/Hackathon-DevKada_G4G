@@ -57,6 +57,9 @@ String extractFinalAnswer(String raw) {
 }
 
 /// Removes model prompt scaffolding before assistant text reaches the UI.
+///
+/// Note: `<baybayin>…</baybayin>` tags are intentionally preserved — they are
+/// rendered by [BaybayinChatRenderer] in the bubble widget.
 String cleanAssistantOutput(String raw) {
   final String extracted = extractFinalAnswer(raw);
   final List<String> cleanedLines = <String>[];

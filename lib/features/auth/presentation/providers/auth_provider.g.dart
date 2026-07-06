@@ -6,7 +6,6 @@ part of 'auth_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-
 /// See also [supabaseClient].
 @ProviderFor(supabaseClient)
 final supabaseClientProvider = Provider<SupabaseClient>.internal(

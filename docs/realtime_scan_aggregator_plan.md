@@ -1,6 +1,6 @@
 # Realtime Scan Aggregator Plan
 
-> Status: Drafted — pending implementation
+> Status: Implemented; scan layout hardening verified by `scripts/scan-layout-overlap-pass.ps1` on 2026-05-10
 > Owner: Scanner feature
 > Date: 2026-05-05
 
@@ -160,13 +160,30 @@ No changes to `ScannerCamera`, `AggregatedBoundingBox`, `ScannerNotifier`, or an
 
 ---
 
+## Scan layout hardening proof
+
+Run:
+
+```bash
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/scan-layout-overlap-pass.ps1
+```
+
+Artifacts:
+
+- `qa-artifact/scan-layout-strict-overlap/report.json`
+- `qa-artifact/scan-layout-strict-overlap/scan-layout-overlap-contact-sheet.html`
+- `qa-artifact/scan-layout-strict-overlap/matrix/`
+- `qa-artifact/scan-layout-strict-overlap/transitions/`
+
+---
+
 ## Acceptance checklist
 
-- [ ] `aggregatedWinner` set after ≥1 non-empty live detection frame.
+- [x] `aggregatedWinner` set after >=1 non-empty live detection frame.
 - [ ] Winner stable across noisy frames (manually verify with shaky camera over a printed Baybayin word).
 - [ ] Banner appears when result panel is hidden and winner is set.
 - [ ] Banner hidden when result panel is open.
 - [ ] Idle for 1 s → buffer cleared (verifiable: next single detection becomes new winner immediately).
 - [ ] Winner survives idle clear; cleared only on dismiss / gallery / dispose.
-- [ ] `flutter analyze` clean.
+- [ ] `flutter analyze` clean for the current branch.
 - [ ] No regression in shutter flow, gallery flow, permutation dialog freeze.

@@ -63,10 +63,8 @@ class MemoryExtractionService {
     _running = true;
     _lastRun = now;
     try {
-      final List<ChatMessage> history = _ref
-              .read(chatHistoryNotifierProvider)
-              .value ??
-          <ChatMessage>[];
+      final List<ChatMessage> history =
+          _ref.read(chatHistoryNotifierProvider).value ?? <ChatMessage>[];
       if (history.length < 2) return;
 
       final List<ChatMessage> window = history.length <= _windowSize
@@ -82,10 +80,9 @@ class MemoryExtractionService {
 
       final Stream<String> stream = _ref
           .read(aiInferenceNotifierProvider.notifier)
-          .generateResponse(
-            <ChatMessage>[userMessage],
-            systemInstruction: GemmaPrompts.memoryExtractor,
-          );
+          .generateResponse(<ChatMessage>[
+            userMessage,
+          ], systemInstruction: GemmaPrompts.memoryExtractor);
 
       final StringBuffer buf = StringBuffer();
       await for (final String chunk in stream) {
@@ -98,9 +95,7 @@ class MemoryExtractionService {
         return;
       }
       debugPrint('[MemoryExtraction] extracted ${facts.length} fact(s)');
-      await _ref
-          .read(chatMemoryNotifierProvider.notifier)
-          .addFacts(facts);
+      await _ref.read(chatMemoryNotifierProvider.notifier).addFacts(facts);
     } catch (e) {
       debugPrint('[MemoryExtraction] failed (non-fatal): $e');
     } finally {

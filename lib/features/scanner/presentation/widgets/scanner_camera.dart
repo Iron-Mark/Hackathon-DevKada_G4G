@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:go_router/go_router.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 
+import 'package:kudlit_ph/app/constants.dart';
+import 'package:kudlit_ph/core/error/failures.dart';
 import 'package:kudlit_ph/features/scanner/data/datasources/yolo_baybayin_detector.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
 import 'package:kudlit_ph/features/scanner/presentation/providers/scan_tab_controller.dart';
@@ -73,6 +78,74 @@ bool isWebCameraSecureContext(Uri uri) {
 }
 
 @visibleForTesting
+bool isPermissionError(Object error) {
+  final String message = error.toString().toLowerCase();
+  return _containsPermissionToken(message);
+}
+
+@visibleForTesting
+bool isPermissionErrorCode(String code) {
+  return _containsPermissionToken(code.toLowerCase());
+}
+
+bool _containsPermissionToken(String value) {
+  const List<String> permissionTokens = <String>[
+    'permission',
+    'denied',
+    'notallowed',
+    'not allowed',
+    'user denied',
+    'not allowederror',
+    'permissiondeniederror',
+    'notgranted',
+    'forbidden',
+    'security',
+    'camera access',
+    'user media',
+    'notreadab',
+    'notfounderror',
+    'not found',
+    'not supported',
+    'not supportederror',
+  ];
+  return permissionTokens.any((String token) => value.contains(token));
+}
+
+String? _qaCameraStatusValueFromUri() {
+  final String? direct = Uri.base.queryParameters['qa_camera_status'];
+  if (direct != null && direct.isNotEmpty) return direct;
+
+  final String fragment = Uri.base.fragment;
+  final int qIndex = fragment.indexOf('?');
+  if (qIndex == -1 || qIndex == fragment.length - 1) return null;
+
+  final String hashQuery = fragment.substring(qIndex + 1);
+  return Uri(query: '?$hashQuery').queryParameters['qa_camera_status'];
+}
+
+bool _shouldRunQaCameraStatusProbe() {
+  return _qaCameraStatusValueFromUri() != null;
+}
+
+void _emitQaCameraStatusProbeLog(WebScannerStatus status, String? message) {
+  if (!kDebugMode) return;
+
+  final String effectiveMessage = message == null
+      ? status.label
+      : '${status.label}: $message';
+  final String logLine =
+      'status=${status.name} message="${effectiveMessage.replaceAll('\n', ' ')}"';
+  developer.log(logLine, name: 'E2E_SCANNER_STATUS');
+}
+
+@visibleForTesting
+bool shouldCenterWebScannerStatus(WebScannerStatus status) {
+  return status == WebScannerStatus.error ||
+      status == WebScannerStatus.permissionNeeded ||
+      status == WebScannerStatus.initializing;
+}
+
+@visibleForTesting
 int preferredWebCameraIndex(List<CameraDescription> cameras) {
   final int backCamera = cameras.indexWhere(
     (CameraDescription camera) =>
@@ -100,7 +173,7 @@ extension WebScannerStatusMeta on WebScannerStatus {
   String get label => switch (this) {
     WebScannerStatus.initializing => 'Allow camera',
     WebScannerStatus.permissionNeeded => 'Allow camera',
-    WebScannerStatus.ready => 'Webcam ready',
+    WebScannerStatus.ready => 'Camera ready',
     WebScannerStatus.detecting => 'Detecting',
     WebScannerStatus.modelUnavailable => 'Model unavailable',
     WebScannerStatus.error => 'Camera unavailable',
@@ -175,6 +248,11 @@ class _ScannerCameraState extends ConsumerState<ScannerCamera> {
       return 'Download may have been interrupted. Check your connection and retry.';
     }
     return 'Could not load the scanner model. Check your connection and retry.';
+  }
+
+  bool _modelNeedsSetup(String message) {
+    return message.contains('No scanner model') ||
+        message.contains('download URL is missing');
   }
 
   void _onYoloResult(List<YOLOResult> results) {
@@ -260,13 +338,22 @@ class _ScannerCameraState extends ConsumerState<ScannerCamera> {
     final AsyncValue<String> pathAsync = ref.watch(
       yoloModelPathProvider(YoloModelScope.camera),
     );
+    final int? downloadProgress = ref.watch(
+      yoloModelDownloadProgressProvider(YoloModelScope.camera),
+    );
     return pathAsync.when(
-      loading: () => const ModelNotReadyScreen(),
-      error: (Object error, StackTrace _) => ModelNotReadyScreen.error(
-        errorMessage: _modelErrorMessage(error),
-        onRetry: () =>
-            ref.invalidate(yoloModelPathProvider(YoloModelScope.camera)),
-      ),
+      loading: () => ModelNotReadyScreen(progress: downloadProgress),
+      error: (Object error, StackTrace _) {
+        final String message = _modelErrorMessage(error);
+        return ModelNotReadyScreen.error(
+          errorMessage: message,
+          onSetup: _modelNeedsSetup(message)
+              ? () => context.push(AppConstants.routeSettings)
+              : null,
+          onRetry: () =>
+              ref.invalidate(yoloModelPathProvider(YoloModelScope.camera)),
+        );
+      },
       data: (String modelPath) {
         final YoloBaybayinDetector detector =
             ref.watch(baybayinDetectorProvider) as YoloBaybayinDetector;
@@ -332,7 +419,7 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
   }
 
   bool _shouldRunQaStatusTransition() {
-    return Uri.base.queryParameters['qa_camera_status'] == 'unavail-ready';
+    return _qaCameraStatusValueFromUri() == 'unavail-ready';
   }
 
   void _runQaStatusTransitionDemo() {
@@ -343,7 +430,7 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
     );
     _qaStatusTimer = Timer(const Duration(milliseconds: 900), () {
       if (!mounted) return;
-      _setStatus(WebScannerStatus.ready, message: 'Webcam ready');
+      _setStatus(WebScannerStatus.ready, message: 'Camera ready');
     });
   }
 
@@ -378,21 +465,28 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
       _activeCameraIndex = preferredWebCameraIndex(cameras);
       await _initializeCamera(cameras[_activeCameraIndex]);
     } on CameraException catch (e) {
+      final String code = e.code.toLowerCase();
+      final String description = e.description?.toLowerCase() ?? '';
+      _logQaCameraInitError(e);
       final bool denied =
-          e.code == 'CameraAccessDenied' ||
-          e.code == 'cameraPermission' ||
-          e.description?.toLowerCase().contains('permission') == true;
+          isPermissionErrorCode(code) ||
+          isPermissionError(description) ||
+          (code == 'cameraunknown' &&
+              description.contains('fetching the camera stream'));
       _setStatus(
         denied ? WebScannerStatus.permissionNeeded : WebScannerStatus.error,
         message: denied
             ? 'Camera permission is blocked. Allow camera access in the browser, then reload.'
             : 'Camera preview could not start. Use Gallery to test an image.',
       );
-    } catch (_) {
+    } catch (error) {
+      _logQaCameraInitError(error, StackTrace.current);
+      final bool denied = isPermissionError(error);
       _setStatus(
-        WebScannerStatus.error,
-        message:
-            'Camera preview could not start. Use Gallery to test an image.',
+        denied ? WebScannerStatus.permissionNeeded : WebScannerStatus.error,
+        message: denied
+            ? 'Camera permission is blocked. Allow camera access in the browser, then reload.'
+            : 'Camera preview could not start. Use Gallery to test an image.',
       );
     }
   }
@@ -468,17 +562,12 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
     }
 
     _setStatus(WebScannerStatus.detecting);
+    final Uint8List bytes;
     try {
       final XFile image = await controller.takePicture();
-      final Uint8List bytes = await image.readAsBytes();
-      final List<BaybayinDetection> detections = await ref
-          .read(baybayinDetectorProvider)
-          .detectImage(bytes);
-      widget.onDetections(detections);
-      _setStatus(WebScannerStatus.ready);
-      return (detections, bytes);
+      bytes = await image.readAsBytes();
     } catch (e) {
-      final ScanNotice notice = _noticeForCaptureError(e);
+      final ScanNotice notice = _noticeForCaptureError(e.toString());
       _setStatus(
         notice.title == 'Web model unavailable'
             ? WebScannerStatus.modelUnavailable
@@ -487,10 +576,41 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
       );
       throw ScanCaptureException(notice);
     }
+
+    final Either<Failure, List<BaybayinDetection>> result = await ref
+        .read(baybayinDetectorProvider)
+        .detectImage(bytes);
+    return result.fold(
+      (Failure failure) {
+        final ScanNotice notice = _noticeForCaptureError(
+          _failureMessage(failure),
+        );
+        _setStatus(
+          notice.title == 'Web model unavailable'
+              ? WebScannerStatus.modelUnavailable
+              : WebScannerStatus.error,
+          message: notice.message,
+        );
+        throw ScanCaptureException(notice);
+      },
+      (List<BaybayinDetection> detections) {
+        widget.onDetections(detections);
+        _setStatus(WebScannerStatus.ready);
+        return (detections, bytes);
+      },
+    );
   }
 
-  ScanNotice _noticeForCaptureError(Object error) {
-    final String raw = error.toString().toLowerCase();
+  String _failureMessage(Failure failure) {
+    return switch (failure) {
+      NetworkFailure(:final String message) => message,
+      UnknownFailure(:final String message) => message,
+      _ => failure.toString(),
+    };
+  }
+
+  ScanNotice _noticeForCaptureError(String error) {
+    final String raw = error.toLowerCase();
     if (raw.contains('404') ||
         raw.contains('not_found') ||
         raw.contains('object not found')) {
@@ -534,11 +654,25 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
 
   void _setStatus(WebScannerStatus status, {String? message}) {
     if (!mounted) return;
+    _emitQaCameraStatusProbeLog(status, message);
     setState(() {
       _status = status;
       _message = message;
     });
     widget.onStatusChanged?.call(status);
+  }
+
+  void _logQaCameraInitError(Object error, [StackTrace? stackTrace]) {
+    if (!_shouldRunQaCameraStatusProbe()) return;
+    final String normalized = error.toString().replaceAll('\n', ' ');
+    final String prefixed =
+        '[E2E_SCANNER_STATUS] camera-init-error: $normalized';
+    developer.log(
+      prefixed,
+      name: 'E2E_SCANNER_STATUS',
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   @override
@@ -559,7 +693,9 @@ class _WebCameraPreviewState extends ConsumerState<_WebCameraPreview> {
                 : constraints.maxWidth < 380
                 ? 14
                 : 28;
-            final bool centerUnavailable = _status == WebScannerStatus.error;
+            final bool centerUnavailable = shouldCenterWebScannerStatus(
+              _status,
+            );
             return Align(
               alignment: centerUnavailable
                   ? Alignment.center
@@ -612,8 +748,12 @@ class WebStatusMessage extends StatelessWidget {
         final double availableWidth = constraints.hasBoundedWidth
             ? constraints.maxWidth
             : 360;
-        final double maxWidth = availableWidth.clamp(200.0, 240.0);
-        final bool narrow = maxWidth < 300;
+        final bool shouldCenter = shouldCenterWebScannerStatus(status);
+        final double centeredWidth = availableWidth < 240
+            ? availableWidth
+            : 240;
+        final double cardWidth = shouldCenter ? centeredWidth : availableWidth;
+        final bool narrow = availableWidth < 320 || shouldCenter;
 
         final String semanticLabel = message == null
             ? status.label
@@ -622,10 +762,11 @@ class WebStatusMessage extends StatelessWidget {
         return Semantics(
           label: semanticLabel,
           excludeSemantics: true,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
+          child: RepaintBoundary(
+            key: const ValueKey('web-status-message-container'),
             child: Container(
-              width: double.infinity,
+              width: cardWidth,
+              key: const ValueKey('web-status-message-card'),
               padding: EdgeInsets.symmetric(
                 horizontal: showCompact
                     ? 12
@@ -639,9 +780,9 @@ class WebStatusMessage extends StatelessWidget {
                     : 16,
               ),
               decoration: BoxDecoration(
-                color: cs.surface.withAlpha(showCompact ? 210 : 235),
+                color: _statusSurface(cs).withAlpha(showCompact ? 218 : 242),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: cs.outline),
+                border: Border.all(color: _statusBorder(cs)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -653,7 +794,7 @@ class WebStatusMessage extends StatelessWidget {
                         : narrow
                         ? 28
                         : 32,
-                    color: cs.onSurface.withAlpha(190),
+                    color: _statusIconColor(cs),
                   ),
                   SizedBox(height: showCompact || narrow ? 8 : 10),
                   Text(
@@ -692,6 +833,38 @@ class WebStatusMessage extends StatelessWidget {
         );
       },
     );
+  }
+
+  Color _statusSurface(ColorScheme cs) {
+    return switch (status) {
+      WebScannerStatus.ready => cs.primaryContainer,
+      WebScannerStatus.detecting => cs.tertiaryContainer,
+      WebScannerStatus.modelUnavailable ||
+      WebScannerStatus.error => cs.errorContainer,
+      WebScannerStatus.initializing ||
+      WebScannerStatus.permissionNeeded => cs.surfaceContainerHigh,
+    };
+  }
+
+  Color _statusBorder(ColorScheme cs) {
+    return switch (status) {
+      WebScannerStatus.ready => cs.primary.withValues(alpha: 0.42),
+      WebScannerStatus.detecting => cs.tertiary.withValues(alpha: 0.42),
+      WebScannerStatus.modelUnavailable ||
+      WebScannerStatus.error => cs.error.withValues(alpha: 0.42),
+      WebScannerStatus.initializing ||
+      WebScannerStatus.permissionNeeded => cs.outline,
+    };
+  }
+
+  Color _statusIconColor(ColorScheme cs) {
+    return switch (status) {
+      WebScannerStatus.ready => cs.primary,
+      WebScannerStatus.detecting => cs.tertiary,
+      WebScannerStatus.modelUnavailable || WebScannerStatus.error => cs.error,
+      WebScannerStatus.initializing ||
+      WebScannerStatus.permissionNeeded => cs.onSurface.withAlpha(190),
+    };
   }
 }
 

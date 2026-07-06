@@ -62,6 +62,16 @@ void main() {
     expect(find.byTooltip('Share reading'), findsOneWidget);
     expect(find.byTooltip('Save reading'), findsOneWidget);
     expect(find.byTooltip('Close result'), findsOneWidget);
+    for (final String tooltip in <String>[
+      'Copy reading',
+      'Share reading',
+      'Save reading',
+      'Close result',
+    ]) {
+      final Rect action = tester.getRect(find.byTooltip(tooltip));
+      expect(action.height, greaterThanOrEqualTo(44));
+      expect(action.width, greaterThanOrEqualTo(44));
+    }
     expect(tester.takeException(), isNull);
   });
 

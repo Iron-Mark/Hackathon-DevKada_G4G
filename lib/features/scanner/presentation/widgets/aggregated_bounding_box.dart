@@ -84,11 +84,11 @@ class AggregatedBoundingBox extends StatelessWidget {
   }
 
   static Rect _toPixels(BaybayinDetection d, Size size) => Rect.fromLTWH(
-        d.left * size.width,
-        d.top * size.height,
-        d.width * size.width,
-        d.height * size.height,
-      );
+    d.left * size.width,
+    d.top * size.height,
+    d.width * size.width,
+    d.height * size.height,
+  );
 }
 
 // ── Box painter ───────────────────────────────────────────────────────────────
@@ -147,11 +147,7 @@ class _ChipPositioner extends StatelessWidget {
     return Positioned(
       left: outer.left.clamp(4.0, size.width - 80),
       top: top,
-      child: _PermutationChip(
-        primary: primary,
-        extras: extras,
-        onTap: onTap,
-      ),
+      child: _PermutationChip(primary: primary, extras: extras, onTap: onTap),
     );
   }
 }

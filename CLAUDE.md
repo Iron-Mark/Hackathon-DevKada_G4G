@@ -33,6 +33,9 @@ flutter test
 # Run a single test file
 flutter test test/features/scanner/domain/usecases/translate_baybayin_test.dart
 
+# Run scan layout hardening verification
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/scan-layout-overlap-pass.ps1
+
 # Run tests matching a name pattern
 flutter test --name "should return translation"
 
@@ -68,8 +71,8 @@ lib/
             └── widgets/
 ```
 
-**Planned features:**
-- `scanner` — camera feed → YOLO TFLite inference → Baybayin character detection
+**Current feature slices:**
+- `scanner` — native camera/gallery YOLO plus web webcam preview with capture-based TFLite detection from the active vision model URL
 - `translator` — Baybayin glyphs → romanized/Filipino text via Gemma 4
 - `learn` — interactive lessons and character reference
 
@@ -90,7 +93,8 @@ Dependencies flow inward only: `presentation` → `domain` ← `data`. The `doma
 
 ### Platform Notes
 - Web is the primary design target during development; test layout on Chrome.
-- Camera/TFLite features are unavailable on web—use conditional imports or `kIsWeb` guards and provide a fallback UI (e.g., image upload instead of live camera).
+- Web has browser webcam preview and capture-based TFLite detection when a compatible model URL is configured. Native-only capabilities, such as torch control and local model setup, still need `kIsWeb` guards and fallback UI.
+- Scan layout hardening proof lives under `qa-artifact/scan-layout-strict-overlap/`; regenerate it with `scripts/scan-layout-overlap-pass.ps1`.
 
 ## Coding Rules
 

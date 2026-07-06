@@ -1,6 +1,5 @@
 // ignore: unnecessary_import — flutter_riverpod is needed for Ref resolution
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -51,8 +50,12 @@ LocalGemmaDatasource localGemmaDatasource(Ref ref) {
 
 @Riverpod(keepAlive: true)
 CloudGemmaDatasource cloudGemmaDatasource(Ref ref) {
-  final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-  final CloudGemmaDatasource ds = CloudGemmaDatasource(apiKey: apiKey);
+  // The Gemini API key is intentionally NOT read on the client. All cloud
+  // Gemma calls are proxied through the Supabase Edge Function
+  // `gemini-proxy`, which holds the upstream key server-side and verifies
+  // the caller's Supabase JWT.
+  final SupabaseClient client = ref.watch(supabaseClientProvider);
+  final CloudGemmaDatasource ds = CloudGemmaDatasource(supabase: client);
   ref.onDispose(ds.dispose);
   return ds;
 }
@@ -99,32 +102,32 @@ AiInferenceRepository aiInferenceRepository(Ref ref) {
 /// settings toggle.
 final FutureProvider<LocalGemmaReadiness> localModelReadinessProvider =
     FutureProvider<LocalGemmaReadiness>((Ref ref) async {
-  final String? selectedModelId = ref.watch(
-    appPreferencesNotifierProvider.select(
-      (AsyncValue<AppPreferences> v) => v.value?.selectedModelId,
-    ),
-  );
-  final List<GemmaModelInfo> models = await ref.read(
-    availableGemmaModelsProvider.future,
-  );
-  if (models.isEmpty) {
-    return const LocalGemmaReadiness(
-      installed: false,
-      usable: false,
-      detail: 'Offline model is unavailable on this device.',
-    );
-  }
-  GemmaModelInfo active = models[models.length ~/ 2];
-  if (selectedModelId != null) {
-    for (final GemmaModelInfo m in models) {
-      if (m.id == selectedModelId) {
-        active = m;
-        break;
+      final String? selectedModelId = ref.watch(
+        appPreferencesNotifierProvider.select(
+          (AsyncValue<AppPreferences> v) => v.value?.selectedModelId,
+        ),
+      );
+      final List<GemmaModelInfo> models = await ref.read(
+        availableGemmaModelsProvider.future,
+      );
+      if (models.isEmpty) {
+        return const LocalGemmaReadiness(
+          installed: false,
+          usable: false,
+          detail: 'Offline model is unavailable on this device.',
+        );
       }
-    }
-  }
-  return ref.read(localGemmaDatasourceProvider).probeReadiness(active);
-});
+      GemmaModelInfo active = models[models.length ~/ 2];
+      if (selectedModelId != null) {
+        for (final GemmaModelInfo m in models) {
+          if (m.id == selectedModelId) {
+            active = m;
+            break;
+          }
+        }
+      }
+      return ref.read(localGemmaDatasourceProvider).probeReadiness(active);
+    });
 
 @Riverpod(keepAlive: true)
 AnalyzeBaybayinImage analyzeBaybayinImage(Ref ref) {

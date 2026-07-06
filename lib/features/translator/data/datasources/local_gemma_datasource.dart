@@ -4,6 +4,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 
 import 'package:kudlit_ph/core/error/exceptions.dart';
 import 'package:kudlit_ph/features/translator/data/datasources/ai_datasource.dart';
+import 'package:kudlit_ph/features/translator/data/datasources/gemma_model_file_type.dart';
 import 'package:kudlit_ph/features/translator/domain/entities/baybayin_challenge.dart';
 import 'package:kudlit_ph/features/translator/domain/entities/chat_message.dart';
 import 'package:kudlit_ph/features/translator/domain/entities/gemma_model_info.dart';
@@ -16,7 +17,6 @@ import 'package:kudlit_ph/features/translator/domain/entities/gemma_model_info.d
 /// - iOS: `flutter_gemma` uses `NSURLSession` which schedules the
 ///   download discretionarily — iOS picks the timing, the app may
 ///   be backgrounded or terminated while download proceeds.
-/// - Web: not supported by this datasource (`kIsWeb` guard upstream).
 class LocalGemmaDatasource implements AiDatasource {
   LocalGemmaDatasource();
 
@@ -25,14 +25,49 @@ class LocalGemmaDatasource implements AiDatasource {
   bool _activeModelHasVision = false;
   InferenceChat? _chat;
 
+  /// Last model we know is installed for this device. flutter_gemma's native
+  /// "active model" is process-scoped and is lost on every app restart, while
+  /// the downloaded file persists. Remembering the model lets the inference
+  /// path reactivate it on demand instead of relying on a UI readiness probe
+  /// having run first.
+  GemmaModelInfo? _knownModel;
+
+  /// Records [model] as the installed model without doing any native work.
+  /// Called from the inference notifier as soon as it resolves the active
+  /// model so reactivation can self-heal even before any readiness probe.
+  void rememberModel(GemmaModelInfo model) {
+    _knownModel = model;
+  }
+
+  /// Reactivates the installed model into the native engine when the engine
+  /// reports no active model (typical after an app restart). No-op when an
+  /// active model already exists, when we don't know the model, or when the
+  /// file is not installed (the caller's `getActiveModel()` then surfaces the
+  /// error and the repository falls back to cloud).
+  Future<void> _reactivateIfNeeded() async {
+    if (FlutterGemma.hasActiveModel() || _knownModel == null) return;
+    final bool installed = await FlutterGemma.isModelInstalled(
+      _knownModel!.fileName,
+    );
+    if (!installed) return;
+    debugPrint(
+      '[Gemma][local] engine has no active model — reactivating '
+      '${_knownModel!.fileName}',
+    );
+    await _reactivateInstalledModel(_knownModel!);
+  }
+
   // Mutex so concurrent probeReadiness calls share one native operation.
   bool _probing = false;
   Future<LocalGemmaReadiness>? _pendingProbe;
 
   Future<LocalGemmaReadiness> probeReadiness(GemmaModelInfo model) {
+    _knownModel = model;
     // Fast path: model is already loaded — skip all native work.
     if (_activeModel != null) {
-      debugPrint('[Gemma][local] readiness probe fast-path (model already loaded)');
+      debugPrint(
+        '[Gemma][local] readiness probe fast-path (model already loaded)',
+      );
       return Future<LocalGemmaReadiness>.value(
         LocalGemmaReadiness(
           installed: true,
@@ -97,7 +132,7 @@ class LocalGemmaDatasource implements AiDatasource {
   /// Ensures the model is loaded into memory without blocking inference.
   /// Safe to call fire-and-forget after download completes.
   Future<void> ensureModelLoaded() async {
-    if (kIsWeb || _activeModel != null) return;
+    if (_activeModel != null) return;
     try {
       _activeModel = await FlutterGemma.getActiveModel();
       _activeModelHasVision = false;
@@ -121,13 +156,14 @@ class LocalGemmaDatasource implements AiDatasource {
     GemmaModelInfo model, {
     void Function(int progress)? onProgress,
   }) async {
+    _knownModel = model;
     _cancelToken = CancelToken();
     try {
       final String? hfToken = dotenv.env['HUGGINGFACE_TOKEN'];
       final InferenceInstallationBuilder builder =
           FlutterGemma.installModel(
                 modelType: ModelType.gemma4,
-                fileType: _modelFileTypeFor(model),
+                fileType: resolveGemmaModelFileType(model.modelLink),
               )
               .fromNetwork(model.modelLink, token: hfToken)
               .withCancelToken(_cancelToken!);
@@ -166,6 +202,9 @@ class LocalGemmaDatasource implements AiDatasource {
       );
       // Vision-enabled models work fine for text generation, so reuse
       // _activeModel regardless of _activeModelHasVision.
+      if (_activeModel == null) {
+        await _reactivateIfNeeded();
+      }
       _activeModel ??= await FlutterGemma.getActiveModel();
       debugPrint('[Gemma][local] active model ready');
       _chat ??= await _activeModel!.createChat(
@@ -205,9 +244,16 @@ class LocalGemmaDatasource implements AiDatasource {
     String mimeType = 'image/png',
     String? prompt,
   }) async* {
+    if (kIsWeb) {
+      throw UnsupportedError(
+        'Image analysis is not supported by flutter_gemma on web yet.',
+      );
+    }
     InferenceChat? imageChat;
     try {
-      debugPrint('[Gemma][local] analyzeImage called | bytes=${imageBytes.length}');
+      debugPrint(
+        '[Gemma][local] analyzeImage called | bytes=${imageBytes.length}',
+      );
       // Close any active text chat — native model allows one session at a time.
       if (_chat != null) {
         await _chat!.close();
@@ -219,6 +265,9 @@ class LocalGemmaDatasource implements AiDatasource {
       if (_activeModel != null && !_activeModelHasVision) {
         await _activeModel!.close();
         _activeModel = null;
+      }
+      if (_activeModel == null) {
+        await _reactivateIfNeeded();
       }
       _activeModel ??= await FlutterGemma.getActiveModel(
         supportImage: true,
@@ -242,7 +291,10 @@ class LocalGemmaDatasource implements AiDatasource {
       debugPrint('[Gemma][local] analyzeImage stream finished');
     } catch (e, s) {
       debugPrint('[Gemma][local] analyzeImage error: $e');
-      debugPrintStack(stackTrace: s, label: '[Gemma][local] analyzeImage stack');
+      debugPrintStack(
+        stackTrace: s,
+        label: '[Gemma][local] analyzeImage stack',
+      );
       rethrow;
     } finally {
       await imageChat?.close();
@@ -261,17 +313,9 @@ class LocalGemmaDatasource implements AiDatasource {
     final String? hfToken = dotenv.env['HUGGINGFACE_TOKEN'];
     await FlutterGemma.installModel(
       modelType: ModelType.gemma4,
-      fileType: _modelFileTypeFor(model),
+      fileType: resolveGemmaModelFileType(model.modelLink),
     ).fromNetwork(model.modelLink, token: hfToken).install();
     debugPrint('[Gemma][local] active model restored for ${model.fileName}');
-  }
-
-  ModelFileType _modelFileTypeFor(GemmaModelInfo model) {
-    final String lower = model.fileName.toLowerCase();
-    if (lower.endsWith('.litertlm')) {
-      return ModelFileType.litertlm;
-    }
-    return ModelFileType.task;
   }
 
   @override

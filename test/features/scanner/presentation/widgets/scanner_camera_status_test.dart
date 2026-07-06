@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kudlit_ph/features/scanner/presentation/widgets/model_not_ready_screen.dart';
 import 'package:kudlit_ph/features/scanner/presentation/widgets/scanner_camera.dart';
 
 void main() {
@@ -46,6 +47,44 @@ void main() {
       preferredWebCameraIndex(<CameraDescription>[front, external, back]),
       2,
     );
+  });
+
+  test(
+    'web camera alignment helper centers permission-related and initializing states',
+    () {
+      expect(
+        shouldCenterWebScannerStatus(WebScannerStatus.initializing),
+        isTrue,
+      );
+      expect(
+        shouldCenterWebScannerStatus(WebScannerStatus.permissionNeeded),
+        isTrue,
+      );
+      expect(shouldCenterWebScannerStatus(WebScannerStatus.error), isTrue);
+      expect(shouldCenterWebScannerStatus(WebScannerStatus.ready), isFalse);
+      expect(
+        shouldCenterWebScannerStatus(WebScannerStatus.modelUnavailable),
+        isFalse,
+      );
+      expect(shouldCenterWebScannerStatus(WebScannerStatus.detecting), isFalse);
+    },
+  );
+
+  test('web camera permission helpers catch known denial variants', () {
+    expect(isPermissionErrorCode('notAllowedError'), isTrue);
+    expect(isPermissionErrorCode('PermissionDeniedError'), isTrue);
+    expect(isPermissionErrorCode('NotReadableError'), isTrue);
+    expect(isPermissionErrorCode('security'), isTrue);
+    expect(isPermissionErrorCode('cameraUnknown'), isFalse);
+
+    expect(isPermissionError('User denied camera access.'), isTrue);
+    expect(
+      isPermissionError(
+        'getUserMedia failed due to denied permission from browser.',
+      ),
+      isTrue,
+    );
+    expect(isPermissionError('No camera found on this device.'), isFalse);
   });
 
   testWidgets('web camera status card fits narrow scanner viewport', (
@@ -110,5 +149,87 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     semantics.dispose();
+  });
+
+  testWidgets('web camera ready status uses concise semantic state', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 480));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: WebStatusMessage(
+              cs: ThemeData.dark().colorScheme,
+              status: WebScannerStatus.ready,
+              showCompact: false,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Camera ready'), findsOneWidget);
+    expect(find.textContaining('raw exception'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('model not ready screen shows download progress', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 480));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: ModelNotReadyScreen(progress: 42)),
+      ),
+    );
+
+    expect(find.text('Downloading scanner model... 42%'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('model not ready error gives settings path for missing models', (
+    WidgetTester tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 480));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    bool openedSettings = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ModelNotReadyScreen.error(
+            errorMessage: 'No scanner model is configured yet.',
+            onRetry: () {},
+            onSetup: () => openedSettings = true,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Scanner model needs setup'), findsOneWidget);
+    expect(
+      find.text(
+        'Open Settings > Offline downloads to get camera reading ready.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Open downloads'), findsOneWidget);
+    expect(find.text('Try Again'), findsOneWidget);
+    expect(find.textContaining('Exception'), findsNothing);
+
+    final Rect ctaRect = tester.getRect(
+      find.widgetWithText(FilledButton, 'Open downloads'),
+    );
+    expect(ctaRect.height, greaterThanOrEqualTo(44));
+
+    await tester.tap(find.text('Open downloads'));
+    expect(openedSettings, isTrue);
+    expect(tester.takeException(), isNull);
   });
 }

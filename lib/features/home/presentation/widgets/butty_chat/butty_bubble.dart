@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import 'package:kudlit_ph/features/home/presentation/utils/safe_ai_output.dart';
+import 'package:kudlit_ph/features/home/presentation/widgets/butty_chat/baybayin_chat_renderer.dart';
 
 class ButtyBubble extends StatelessWidget {
   const ButtyBubble({super.key, required this.text, this.isStreaming = false});
@@ -87,40 +87,7 @@ class _BubbleContent extends StatelessWidget {
       height: 1.5,
     );
 
-    final Widget body = MarkdownBody(
-      data: text,
-      shrinkWrap: true,
-      softLineBreak: true,
-      styleSheet: MarkdownStyleSheet(
-        p: baseStyle,
-        h1: baseStyle.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
-        h2: baseStyle.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
-        h3: baseStyle.copyWith(fontSize: 14.5, fontWeight: FontWeight.w700),
-        strong: baseStyle.copyWith(fontWeight: FontWeight.w700),
-        em: baseStyle.copyWith(fontStyle: FontStyle.italic),
-        listBullet: baseStyle,
-        a: baseStyle.copyWith(
-          color: cs.primary,
-          decoration: TextDecoration.underline,
-        ),
-        code: baseStyle.copyWith(
-          fontFamily: 'monospace',
-          fontSize: 12.5,
-          backgroundColor: cs.surface,
-        ),
-        codeblockDecoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: cs.outline),
-        ),
-        codeblockPadding: const EdgeInsets.all(10),
-        blockquoteDecoration: BoxDecoration(
-          border: Border(left: BorderSide(color: cs.primary, width: 3)),
-        ),
-        blockquotePadding: const EdgeInsets.only(left: 10),
-        blockSpacing: 6,
-      ),
-    );
+    final Widget body = BaybayinChatRenderer(text: text, baseStyle: baseStyle);
 
     if (!isStreaming) return body;
 

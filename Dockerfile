@@ -13,11 +13,10 @@ RUN flutter pub get --no-example
 # Copy the rest of the source (includes .env asset)
 COPY . .
 
-# Release web build — renderer=canvaskit gives smaller JS than html renderer
+# Release web build — CanvasKit is the default renderer for release builds
 # --pwa-strategy=none skips service worker generation (keeps it simple)
 RUN flutter build web \
       --release \
-      --web-renderer canvaskit \
       --pwa-strategy none \
       --no-tree-shake-icons
 

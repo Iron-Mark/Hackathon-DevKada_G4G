@@ -19,7 +19,18 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Baybayin script translator and learning app.">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0E1425">
+  <meta name="description" content="Open Kudlit, a mobile-first Baybayin scanner, translator, and learning companion built with Flutter.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Kudlit">
+  <meta property="og:title" content="Kudlit App - Baybayin Scanner, Translator, and Learning Companion">
+  <meta property="og:description" content="Open the Kudlit Flutter web preview for Baybayin scanning, translation, lessons, and Butty guidance.">
+  <meta property="og:image" content="../social/kudlit-github-social.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Kudlit App - Baybayin Scanner, Translator, and Learning Companion">
+  <meta name="twitter:description" content="Open Kudlit's Flutter web preview for Baybayin learning.">
+  <meta name="twitter:image" content="../social/kudlit-github-social.png">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -30,8 +41,16 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>kudlit_ph</title>
+  <title>Kudlit App - Baybayin Scanner, Translator, and Learning Companion</title>
   <link rel="manifest" href="manifest.json">
+  <script type="module">
+    import {
+      FilesetResolver,
+      LlmInference
+    } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-genai@0.10.27';
+    window.FilesetResolver = FilesetResolver;
+    window.LlmInference = LlmInference;
+  </script>
 </head>
 <body>
   <!--

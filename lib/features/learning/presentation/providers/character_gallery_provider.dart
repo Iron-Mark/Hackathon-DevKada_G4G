@@ -25,21 +25,26 @@ Future<List<GlyphEntry>> characterGallery(Ref ref) async {
     if (seen.add(glyph)) unique.add(row);
   }
 
-  final List<String> glyphs =
-      unique.map((Map<String, dynamic> r) => r['glyph'] as String).toList();
-  final Map<String, StrokeOrderData> strokeOrders =
-      await _fetchStrokeOrders(client, glyphs);
+  final List<String> glyphs = unique
+      .map((Map<String, dynamic> r) => r['glyph'] as String)
+      .toList();
+  final Map<String, StrokeOrderData> strokeOrders = await _fetchStrokeOrders(
+    client,
+    glyphs,
+  );
 
-  return unique.map((Map<String, dynamic> row) {
-    final String glyph = row['glyph'] as String;
-    final String lessonId = (row['lesson_id'] as String?) ?? '';
-    return GlyphEntry(
-      glyph: glyph,
-      label: (row['label'] as String?) ?? glyph,
-      group: _groupFromLessonId(lessonId),
-      strokeOrder: strokeOrders[glyph],
-    );
-  }).toList(growable: false);
+  return unique
+      .map((Map<String, dynamic> row) {
+        final String glyph = row['glyph'] as String;
+        final String lessonId = (row['lesson_id'] as String?) ?? '';
+        return GlyphEntry(
+          glyph: glyph,
+          label: (row['label'] as String?) ?? glyph,
+          group: _groupFromLessonId(lessonId),
+          strokeOrder: strokeOrders[glyph],
+        );
+      })
+      .toList(growable: false);
 }
 
 Future<Map<String, StrokeOrderData>> _fetchStrokeOrders(

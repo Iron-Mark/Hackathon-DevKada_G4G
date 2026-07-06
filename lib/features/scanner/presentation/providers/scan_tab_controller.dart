@@ -3,8 +3,10 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:kudlit_ph/core/error/failures.dart';
 import 'package:kudlit_ph/core/utils/baybayify.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
 import 'package:kudlit_ph/features/scanner/presentation/providers/scanner_evaluation_provider.dart';
@@ -121,6 +123,8 @@ scanTabControllerProvider = NotifierProvider<ScanTabController, ScanTabState>(
   ScanTabController.new,
 );
 
+enum _StillImageSource { gallery, camera }
+
 class ScanTabController extends Notifier<ScanTabState> {
   static const int _kAggMaxBuffer = 50;
   static const Duration _kAggIdleTimeout = Duration(milliseconds: 1000);
@@ -138,11 +142,29 @@ class ScanTabController extends Notifier<ScanTabState> {
   Future<void> toggleFlash() async {
     final bool next = !state.flashOn;
     state = state.copyWith(flashOn: next);
-    await ref.read(baybayinDetectorProvider).toggleTorch(enabled: next);
+    final Either<Failure, Unit> result = await ref
+        .read(baybayinDetectorProvider)
+        .toggleTorch(enabled: next);
+    result.fold(
+      (Failure failure) {
+        debugPrint('[ScanTab] toggleTorch failed: ${_messageOf(failure)}');
+        // Revert the optimistic flash state so the UI doesn't lie about it.
+        state = state.copyWith(flashOn: !next);
+      },
+      (_) {},
+    );
   }
 
   Future<void> switchCamera() async {
-    await ref.read(baybayinDetectorProvider).switchCamera();
+    final Either<Failure, Unit> result = await ref
+        .read(baybayinDetectorProvider)
+        .switchCamera();
+    result.fold(
+      (Failure failure) {
+        debugPrint('[ScanTab] switchCamera failed: ${_messageOf(failure)}');
+      },
+      (_) {},
+    );
   }
 
   Future<void> pickImageFromGallery() async {
@@ -152,33 +174,61 @@ class ScanTabController extends Notifier<ScanTabState> {
       return;
     }
 
-    _resetAggregator();
-    state = state.copyWith(
-      isLoadingImage: true,
-      clearAggregatedWinner: true,
-      clearScanNotice: true,
-    );
-    final Uint8List bytes = await image.readAsBytes();
-    state = state.copyWith(
-      selectedImageBytes: bytes,
-      isLoadingImage: false,
-      resultVisible: true,
-      clearScanNotice: true,
-    );
+    try {
+      final Uint8List bytes = await image.readAsBytes();
+      await processGalleryImageBytes(bytes);
+    } catch (e) {
+      _beginStillImageScan();
+      _finishStillImageError(_noticeForStillImageError(e.toString()));
+    }
+  }
 
-    final List<BaybayinDetection> results = await ref
+  @visibleForTesting
+  Future<void> processGalleryImageBytes(Uint8List bytes) {
+    return _processStillImage(bytes, source: _StillImageSource.gallery);
+  }
+
+  Future<void> captureNativeFrame({Uint8List? fallbackBytes}) async {
+    _beginStillImageScan();
+
+    final Either<Failure, Uint8List?> result = await ref
         .read(baybayinDetectorProvider)
-        .detectImage(bytes);
+        .captureFrame();
+    Uint8List? imageBytes = result.fold(
+      (Failure failure) {
+        debugPrint(
+          '[ScanTab] native camera frame capture failed: ${_messageOf(failure)}',
+        );
+        return null;
+      },
+      (Uint8List? bytes) => bytes,
+    );
+    imageBytes ??= fallbackBytes;
 
-    ref.read(scannerNotifierProvider.notifier).update(results);
-    _evaluateSafely(results, bytes);
-    state = state.copyWith(snapshot: List<BaybayinDetection>.of(results));
+    if (imageBytes == null || imageBytes.isEmpty) {
+      _finishStillImageError(
+        const ScanNotice(
+          title: 'Capture failed',
+          message: 'The camera frame was not ready. Try again or use Gallery.',
+          kind: ScanNoticeKind.error,
+        ),
+      );
+      return;
+    }
+
+    await _processStillImage(
+      imageBytes,
+      source: _StillImageSource.camera,
+      begin: false,
+    );
   }
 
   Future<void> captureWebFrame(
     Future<(List<BaybayinDetection>, Uint8List?)> Function() capture,
   ) async {
     _resetAggregator();
+    ref.read(scannerNotifierProvider.notifier).clear();
+    ref.read(scannerEvaluationProvider.notifier).clear();
     state = state.copyWith(
       isLoadingImage: true,
       resultVisible: false,
@@ -195,6 +245,8 @@ class ScanTabController extends Notifier<ScanTabState> {
       ref.read(scannerNotifierProvider.notifier).update(results);
       if (results.isNotEmpty) {
         _evaluateSafely(results, null);
+      } else {
+        ref.read(scannerEvaluationProvider.notifier).clear();
       }
       state = state.copyWith(
         isLoadingImage: false,
@@ -213,6 +265,7 @@ class ScanTabController extends Notifier<ScanTabState> {
       );
     } on ScanCaptureException catch (e) {
       ref.read(scannerNotifierProvider.notifier).clear();
+      ref.read(scannerEvaluationProvider.notifier).clear();
       state = state.copyWith(
         isLoadingImage: false,
         resultVisible: false,
@@ -223,6 +276,7 @@ class ScanTabController extends Notifier<ScanTabState> {
     } catch (e) {
       debugPrint('[ScanTab] capture failed: $e');
       ref.read(scannerNotifierProvider.notifier).clear();
+      ref.read(scannerEvaluationProvider.notifier).clear();
       state = state.copyWith(
         isLoadingImage: false,
         resultVisible: false,
@@ -247,7 +301,7 @@ class ScanTabController extends Notifier<ScanTabState> {
     final List<BaybayinDetection> detections = ref.read(
       scannerNotifierProvider,
     );
-    if (state.resultVisible || state.isShutterFrozen) {
+    if (state.isShutterFrozen) {
       dismissResult();
       return;
     }
@@ -281,7 +335,8 @@ class ScanTabController extends Notifier<ScanTabState> {
   }
 
   void applyLiveDetections(List<BaybayinDetection> detections) {
-    if (state.selectedImageBytes != null ||
+    if (state.isLoadingImage ||
+        state.selectedImageBytes != null ||
         state.capturedFrameBytes != null ||
         state.detectionsFrozen) {
       return;
@@ -310,12 +365,24 @@ class ScanTabController extends Notifier<ScanTabState> {
     state = state.copyWith(
       resultVisible: false,
       clearCapturedFrame: true,
+      detectionsFrozen: false,
       snapshot: const <BaybayinDetection>[],
       clearAggregatedWinner: true,
       clearScanNotice: true,
     );
     if (!kIsWeb) {
-      ref.read(baybayinDetectorProvider).resumeInference();
+      unawaited(
+        ref.read(baybayinDetectorProvider).resumeInference().then((
+          Either<Failure, Unit> result,
+        ) {
+          result.fold(
+            (Failure failure) => debugPrint(
+              '[ScanTab] resumeInference failed: ${_messageOf(failure)}',
+            ),
+            (_) {},
+          );
+        }),
+      );
     }
   }
 
@@ -325,6 +392,7 @@ class ScanTabController extends Notifier<ScanTabState> {
     state = state.copyWith(
       clearSelectedImage: true,
       resultVisible: false,
+      detectionsFrozen: false,
       snapshot: const <BaybayinDetection>[],
       clearAggregatedWinner: true,
       clearScanNotice: true,
@@ -355,6 +423,142 @@ class ScanTabController extends Notifier<ScanTabState> {
     } catch (_) {
       // OCR result remains usable if optional AI evaluation is unavailable.
     }
+  }
+
+  Future<void> _processStillImage(
+    Uint8List bytes, {
+    required _StillImageSource source,
+    bool begin = true,
+  }) async {
+    if (begin) {
+      _beginStillImageScan();
+    }
+
+    final Either<Failure, List<BaybayinDetection>> result = await ref
+        .read(baybayinDetectorProvider)
+        .detectImage(bytes);
+    result.fold(
+      (Failure failure) {
+        final String message = _messageOf(failure);
+        debugPrint('[ScanTab] still-image scan failed: $message');
+        _finishStillImageError(_noticeForStillImageError(message));
+      },
+      (List<BaybayinDetection> results) {
+        _finishStillImageScan(results, imageBytes: bytes, source: source);
+      },
+    );
+  }
+
+  void _beginStillImageScan() {
+    _resetAggregator();
+    ref.read(scannerNotifierProvider.notifier).clear();
+    ref.read(scannerEvaluationProvider.notifier).clear();
+    state = state.copyWith(
+      isLoadingImage: true,
+      resultVisible: false,
+      clearSelectedImage: true,
+      clearCapturedFrame: true,
+      detectionsFrozen: true,
+      snapshot: const <BaybayinDetection>[],
+      clearAggregatedWinner: true,
+      clearScanNotice: true,
+    );
+  }
+
+  void _finishStillImageScan(
+    List<BaybayinDetection> results, {
+    required Uint8List imageBytes,
+    required _StillImageSource source,
+  }) {
+    final List<BaybayinDetection> snapshot = List<BaybayinDetection>.of(
+      results,
+    );
+    ref.read(scannerNotifierProvider.notifier).update(snapshot);
+
+    if (snapshot.isEmpty) {
+      ref.read(scannerEvaluationProvider.notifier).clear();
+      state = state.copyWith(
+        isLoadingImage: false,
+        resultVisible: false,
+        clearSelectedImage: true,
+        clearCapturedFrame: true,
+        detectionsFrozen: false,
+        snapshot: const <BaybayinDetection>[],
+        scanNotice: const ScanNotice(
+          title: 'No glyphs detected',
+          message:
+              'Use a clearer, well-lit image with the Baybayin glyphs centered.',
+          kind: ScanNoticeKind.warning,
+        ),
+      );
+      return;
+    }
+
+    _evaluateSafely(snapshot, imageBytes);
+    state = state.copyWith(
+      isLoadingImage: false,
+      resultVisible: true,
+      selectedImageBytes: source == _StillImageSource.gallery
+          ? imageBytes
+          : null,
+      capturedFrameBytes: source == _StillImageSource.camera
+          ? imageBytes
+          : null,
+      detectionsFrozen: false,
+      snapshot: snapshot,
+      clearScanNotice: true,
+    );
+  }
+
+  void _finishStillImageError(ScanNotice notice) {
+    ref.read(scannerNotifierProvider.notifier).clear();
+    ref.read(scannerEvaluationProvider.notifier).clear();
+    state = state.copyWith(
+      isLoadingImage: false,
+      resultVisible: false,
+      clearSelectedImage: true,
+      clearCapturedFrame: true,
+      detectionsFrozen: false,
+      snapshot: const <BaybayinDetection>[],
+      scanNotice: notice,
+    );
+  }
+
+  /// Extracts a human-readable message from any [Failure] sealed variant for
+  /// debug logging. Presentation copy lives in [_noticeForStillImageError] and
+  /// the scan notice widgets, not here.
+  String _messageOf(Failure failure) {
+    return switch (failure) {
+      NetworkFailure(:final String message) => message,
+      UnknownFailure(:final String message) => message,
+      _ => failure.toString(),
+    };
+  }
+
+  ScanNotice _noticeForStillImageError(String error) {
+    final String raw = error.toLowerCase();
+    if (raw.contains('permission')) {
+      return const ScanNotice(
+        title: 'Image access blocked',
+        message: 'Allow photo access, then try Gallery again.',
+        kind: ScanNoticeKind.error,
+      );
+    }
+    if (raw.contains('model') ||
+        raw.contains('yolo') ||
+        raw.contains('tflite')) {
+      return const ScanNotice(
+        title: 'Scanner model unavailable',
+        message:
+            'The scanner model could not run on this image. Check the model setup and retry.',
+        kind: ScanNoticeKind.error,
+      );
+    }
+    return const ScanNotice(
+      title: 'Image scan failed',
+      message: 'Try a clearer image, retake the photo, or use Gallery again.',
+      kind: ScanNoticeKind.error,
+    );
   }
 
   /// Collapses i/e vowel ambiguity to a canonical form so that frames

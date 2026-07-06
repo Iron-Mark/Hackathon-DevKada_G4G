@@ -40,6 +40,8 @@ scannerEvaluationProvider =
 
 class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
   List<String> _lastTokens = <String>[];
+  int _translationGeneration = 0;
+  int _followUpGeneration = 0;
 
   @override
   ScanEvalState build() =>
@@ -50,8 +52,10 @@ class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
     Uint8List? imageBytes, {
     String? aggregatedHint,
   }) {
+    final int generation = ++_translationGeneration;
+    _followUpGeneration++;
     if (detections.isEmpty) {
-      state = const ScanEvalState(translation: AsyncData<String>(''));
+      clear();
       return;
     }
 
@@ -75,7 +79,7 @@ class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
               '${perms.isEmpty ? tokens.join(' ') : perms.take(9).join(', ')}'
         : (perms.isEmpty ? tokens.join(' ') : perms.take(10).join(', '));
 
-    state = state.withTranslation(const AsyncLoading<String>());
+    state = const ScanEvalState(translation: AsyncLoading<String>());
 
     final Stream<String> stream;
     if (imageBytes != null) {
@@ -101,7 +105,7 @@ class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
       );
     }
 
-    unawaited(_listenToTranslation(stream));
+    unawaited(_listenToTranslation(stream, generation));
   }
 
   void requestFollowUp() {
@@ -109,6 +113,7 @@ class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
     if (translationText == null || translationText.isEmpty) return;
     if (state.followUp != null) return;
 
+    final int generation = ++_followUpGeneration;
     state = state.withFollowUp(const AsyncLoading<String>());
 
     final List<ChatMessage> history = <ChatMessage>[
@@ -119,7 +124,7 @@ class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
       ),
       ChatMessage(
         text:
-            "Tell me more about this word — its meaning, how it's used, "
+            'Tell me more about this word — its meaning, how it\'s used, '
             'or something interesting about it.',
         isUser: true,
         timestamp: DateTime.now(),
@@ -133,13 +138,24 @@ class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
           systemInstruction: GemmaPrompts.assistantMode,
         );
 
-    unawaited(_listenToFollowUp(stream));
+    unawaited(_listenToFollowUp(stream, generation));
   }
 
-  Future<void> _listenToTranslation(Stream<String> stream) async {
+  void clear() {
+    _lastTokens = <String>[];
+    _translationGeneration++;
+    _followUpGeneration++;
+    state = const ScanEvalState(translation: AsyncData<String>(''));
+  }
+
+  Future<void> _listenToTranslation(
+    Stream<String> stream,
+    int generation,
+  ) async {
     final StringBuffer buffer = StringBuffer();
     try {
       await for (final String chunk in stream) {
+        if (generation != _translationGeneration) return;
         buffer.write(chunk);
         final String raw = buffer.toString();
         final ({String think, String answer}) parsed =
@@ -151,8 +167,11 @@ class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
             (parsed.answer.isEmpty && parsed.think.isNotEmpty)
             ? const AsyncLoading<String>()
             : AsyncData<String>(parsed.answer);
-        state = state.withTranslation(next);
+        if (generation == _translationGeneration) {
+          state = state.withTranslation(next);
+        }
       }
+      if (generation != _translationGeneration) return;
       // Save only the clean answer (no <think> content) to history.
       final String finalAnswer = GemmaPrompts.parseThinkBlock(
         buffer.toString(),
@@ -169,19 +188,28 @@ class ScannerEvaluationNotifier extends Notifier<ScanEvalState> {
             );
       }
     } catch (e) {
-      state = state.withTranslation(AsyncError<String>(e, StackTrace.current));
+      if (generation == _translationGeneration) {
+        state = state.withTranslation(
+          AsyncError<String>(e, StackTrace.current),
+        );
+      }
     }
   }
 
-  Future<void> _listenToFollowUp(Stream<String> stream) async {
+  Future<void> _listenToFollowUp(Stream<String> stream, int generation) async {
     final StringBuffer buffer = StringBuffer();
     try {
       await for (final String chunk in stream) {
+        if (generation != _followUpGeneration) return;
         buffer.write(chunk);
-        state = state.withFollowUp(AsyncData<String>(buffer.toString()));
+        if (generation == _followUpGeneration) {
+          state = state.withFollowUp(AsyncData<String>(buffer.toString()));
+        }
       }
     } catch (e) {
-      state = state.withFollowUp(AsyncError<String>(e, StackTrace.current));
+      if (generation == _followUpGeneration) {
+        state = state.withFollowUp(AsyncError<String>(e, StackTrace.current));
+      }
     }
   }
 }

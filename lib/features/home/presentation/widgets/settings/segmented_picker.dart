@@ -21,47 +21,56 @@ class SegmentedPicker<T> extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: cs.outline),
+        border: Border.all(color: cs.outlineVariant),
       ),
-      child: Wrap(
-        spacing: 2,
-        runSpacing: 2,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: options.map(((T, String) opt) {
           final bool active = opt.$1 == selected;
           final BorderRadius radius = BorderRadius.circular(7);
-          return Semantics(
-            button: true,
-            selected: active,
-            label: '${opt.$2} option',
-            excludeSemantics: true,
-            child: Tooltip(
-              message: opt.$2,
-              excludeFromSemantics: true,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => onSelect(opt.$1),
+          return Padding(
+            padding: EdgeInsetsDirectional.only(
+              end: identical(opt, options.last) ? 0 : 2,
+            ),
+            child: Semantics(
+              button: true,
+              selected: active,
+              label: '${opt.$2} option',
+              excludeSemantics: true,
+              child: Tooltip(
+                message: opt.$2,
+                excludeFromSemantics: true,
+                child: Material(
+                  color: Colors.transparent,
                   borderRadius: radius,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    constraints: const BoxConstraints(
-                      minWidth: 44,
-                      minHeight: 44,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: active ? cs.primary : Colors.transparent,
-                      borderRadius: radius,
-                    ),
-                    child: Text(
-                      opt.$2,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                        color: active
-                            ? cs.onPrimary
-                            : cs.onSurface.withAlpha(185),
+                  child: InkWell(
+                    onTap: () => onSelect(opt.$1),
+                    borderRadius: radius,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: active ? cs.primary : Colors.transparent,
+                        borderRadius: radius,
+                      ),
+                      child: Text(
+                        opt.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: active
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: active
+                              ? cs.onPrimary
+                              : cs.onSurface.withAlpha(185),
+                        ),
                       ),
                     ),
                   ),

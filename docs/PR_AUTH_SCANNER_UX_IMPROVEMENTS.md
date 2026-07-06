@@ -2,8 +2,8 @@
 
 **Branch**: `feat/auth-scanner-ux-improvements`  
 **Date**: 2026-04-28  
-**Status**: Ready for Review
-f
+**Status**: Historical PR note; current scan-layout hardening artifacts live under `qa-artifact/scan-layout-strict-overlap/`
+
 ---
 
 ## 🎯 Features: Auth & Scanner UX Improvements + Gallery Picker
@@ -72,9 +72,10 @@ Allow users to translate from photos instead of just camera:
 - [x] `flutter analyze` → 0 issues
 - [x] `flutter test` → All 8 tests pass
 - [x] Code formatting → Compliant
+- [x] Scan layout hardening → `scripts/scan-layout-overlap-pass.ps1` wrote passing artifacts under `qa-artifact/scan-layout-strict-overlap/`
 - [ ] Manual testing on Android
 - [ ] Manual testing on iOS
-- [ ] Manual testing on Web
+- [ ] Manual testing on Web device/browser permissions
 
 ---
 
@@ -90,12 +91,9 @@ Allow users to translate from photos instead of just camera:
 ---
 
 ## 📱 Platform Support
-- ✅ Android (gallery + camera)
-- ✅ iOS (gallery + camera)
-- ✅ Web (image upload fallback)
-- ✅ macOS (gallery + camera)
-- ✅ Linux (build support)
-- ✅ Windows (build support)
+- Android/iOS: native camera and gallery flows.
+- Web: browser webcam preview, capture-based TFLite detection, and gallery fallback when a compatible model URL and browser permissions are available.
+- Desktop builds are not verified by this PR note.
 
 ---
 
@@ -117,9 +115,14 @@ Allow users to translate from photos instead of just camera:
 ## 📝 Notes
 - All state management uses Riverpod AsyncValue pattern
 - Animation properly disposed to prevent memory leaks
-- Image picker works across all platforms with appropriate UI fallbacks
+- Image picker and web camera behavior depend on platform permissions and configured model URLs
 - No database migrations required
 - Backwards compatible with existing auth flow
+
+Scan hardening proof:
+
+- `qa-artifact/scan-layout-strict-overlap/report.json`
+- `qa-artifact/scan-layout-strict-overlap/scan-layout-overlap-contact-sheet.html`
 
 ---
 

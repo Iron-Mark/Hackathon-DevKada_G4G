@@ -1,7 +1,8 @@
 # Supabase Phone OTP Integration (Kudlit)
 
-This guide documents the Supabase setup needed before enabling phone OTP in
-the app.
+This guide documents the Supabase setup needed for the app's phone OTP flow.
+The Flutter flow is wired in code, but it still depends on Supabase phone auth
+and SMS delivery being configured in the target environment.
 
 ## 1. Enable Phone Provider
 
@@ -72,4 +73,3 @@ await supabase.auth.verifyOTP(
 - [ ] URL/deep-link config validated
 - [ ] OTP expiry and rate limits reviewed
 - [ ] Test number flow passes end-to-end
-

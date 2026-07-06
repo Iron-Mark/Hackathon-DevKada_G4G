@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:image/image.dart' as img;
-import 'package:http/http.dart' as http;
+import 'package:fpdart/fpdart.dart';
 import 'package:tflite_web/tflite_web.dart';
 
+import 'package:kudlit_ph/core/error/failures.dart';
+import 'package:kudlit_ph/features/scanner/data/datasources/web_tflite_model_runtime.dart';
 import 'package:kudlit_ph/features/scanner/data/datasources/web_vision_model_url_resolver.dart';
 import 'package:kudlit_ph/features/scanner/data/datasources/web_yolo_output_parser.dart';
 import 'package:kudlit_ph/features/scanner/domain/entities/baybayin_detection.dart';
+import 'package:kudlit_ph/features/scanner/domain/failures/scanner_failures.dart';
 import 'package:kudlit_ph/features/scanner/domain/repositories/baybayin_detector.dart';
 
 const List<String> kBaybayinWebYoloLabels = <String>[
@@ -54,44 +56,98 @@ class WebTfliteBaybayinDetector implements BaybayinDetector {
 
   TFLiteModel? _model;
   String? _loadedModelUrl;
-  static Future<void>? _initializeTflite;
 
   @override
   Stream<List<BaybayinDetection>> get detections => _detections.stream;
 
   @override
-  Future<List<BaybayinDetection>> detectImage(Uint8List imageBytes) async {
-    final TFLiteModel model = await _loadModel();
-    final List<int> inputShape = _inputShapeFor(model);
-    final int inputWidth = _inputWidth(inputShape);
-    final int inputHeight = _inputHeight(inputShape);
-    final Tensor input = Tensor(
-      _normalizeImage(imageBytes, width: inputWidth, height: inputHeight),
-      shape: inputShape,
-      type: TFLiteDataType.float32,
+  Future<Either<Failure, List<BaybayinDetection>>> detectImage(
+    Uint8List imageBytes,
+  ) async {
+    final TFLiteModel model;
+    try {
+      model = await _loadModel();
+    } on StateError catch (e) {
+      return left(ScannerFailures.init(e.message));
+    } catch (e) {
+      return left(ScannerFailures.init(e.toString()));
+    }
+
+    if (model.inputs.isEmpty) {
+      return left(
+        ScannerFailures.init('The web scanner model has no input tensor.'),
+      );
+    }
+    final ModelTensorInfo inputInfo = model.inputs.first;
+    final List<int> inputShape = resolvedWebInputShape(inputInfo.shape);
+    final Tensor input = createWebImageInputTensor(
+      imageBytes,
+      inputShape: inputShape,
+      dataType: inputInfo.dataType,
     );
 
-    Tensor? outputTensor;
+    final List<Tensor> outputTensors = <Tensor>[];
     try {
-      final Tensor output = model.predict<Tensor>(input);
-      outputTensor = output;
-      final List<double> values = _tensorValues(output);
-      final List<int>? outputShape = model.outputs.isEmpty
-          ? null
-          : model.outputs.first.shape;
-      final List<BaybayinDetection> detections = _parser.parse(
-        values,
-        shape: outputShape,
+      final Object rawOutput = model.predict<Object>(input);
+      outputTensors.addAll(
+        coerceWebOutputTensors(
+          rawOutput,
+          outputNames: model.outputs
+              .map((ModelTensorInfo info) => info.name)
+              .toList(growable: false),
+        ),
+      );
+      final List<BaybayinDetection> detections = _parseOutputTensors(
+        outputTensors,
+        model,
       );
       if (!_detections.isClosed) {
         _detections.add(detections);
       }
-      return detections;
+      return right(detections);
+    } on StateError catch (e) {
+      return left(ScannerFailures.inference(e.message));
+    } catch (e) {
+      return left(ScannerFailures.inference(e.toString()));
     } finally {
       input.dispose();
-      outputTensor?.dispose();
+      for (final Tensor tensor in outputTensors) {
+        tensor.dispose();
+      }
     }
   }
+
+  List<BaybayinDetection> _parseOutputTensors(
+    List<Tensor> outputTensors,
+    TFLiteModel model,
+  ) {
+    if (outputTensors.isEmpty) {
+      throw StateError('The web scanner model returned no readable outputs.');
+    }
+
+    int fallbackIndex = 0;
+    for (int index = 0; index < outputTensors.length; index++) {
+      final List<int>? outputShape = index < model.outputs.length
+          ? model.outputs[index].shape
+          : null;
+      final List<double> values = webTensorValues(outputTensors[index]);
+      if (_parser.canParse(values, shape: outputShape)) {
+        fallbackIndex = index;
+        return _parser.parse(values, shape: outputShape);
+      }
+    }
+
+    final List<int>? fallbackShape = fallbackIndex < model.outputs.length
+        ? model.outputs[fallbackIndex].shape
+        : null;
+    final List<double> fallbackValues = webTensorValues(
+      outputTensors[fallbackIndex],
+    );
+    return _parser.parse(fallbackValues, shape: fallbackShape);
+  }
+
+  @override
+  Future<Either<Failure, Uint8List?>> captureFrame() async => right(null);
 
   Future<TFLiteModel> _loadModel() async {
     final String? modelUrl = await modelUrlResolver();
@@ -102,111 +158,31 @@ class WebTfliteBaybayinDetector implements BaybayinDetector {
     if (_model != null && _loadedModelUrl == modelUrl) {
       return _model!;
     }
-
-    _initializeTflite ??= TFLiteWeb.initializeUsingCDN();
-    await _initializeTflite;
-    await _validateModelUrl(modelUrl);
-    _model = await TFLiteModel.fromUrl(
-      modelUrl,
-    ).timeout(const Duration(seconds: 25));
+    _model = await loadWebTfliteModel(modelUrl);
     _loadedModelUrl = modelUrl;
     return _model!;
   }
 
-  Future<void> _validateModelUrl(String modelUrl) async {
-    final Uri uri = Uri.parse(modelUrl);
-    final http.Response response = await http
-        .head(uri)
-        .timeout(const Duration(seconds: 12));
-    if (response.statusCode == 404) {
-      throw StateError('Scanner model URL returned HTTP 404: $modelUrl');
-    }
-    if (response.statusCode >= 400) {
-      throw StateError(
-        'Scanner model URL returned HTTP ${response.statusCode}: $modelUrl',
+  @override
+  Future<Either<Failure, Unit>> toggleTorch({required bool enabled}) async =>
+      left(
+        ScannerFailures.webUnsupported(
+          'Torch is not available on the web scanner.',
+        ),
       );
-    }
-  }
-
-  List<int> _inputShapeFor(TFLiteModel model) {
-    final List<int>? shape = model.inputs.isEmpty
-        ? null
-        : model.inputs.first.shape;
-    if (shape == null || shape.length != 4) {
-      return const <int>[1, 640, 640, 3];
-    }
-    return shape.map((int value) => value <= 0 ? 1 : value).toList();
-  }
-
-  int _inputWidth(List<int> shape) {
-    if (shape[1] == 3) return shape[3];
-    return shape[2];
-  }
-
-  int _inputHeight(List<int> shape) {
-    if (shape[1] == 3) return shape[2];
-    return shape[1];
-  }
-
-  Float32List _normalizeImage(
-    Uint8List bytes, {
-    required int width,
-    required int height,
-  }) {
-    final img.Image? decoded = img.decodeImage(bytes);
-    if (decoded == null) {
-      throw StateError('The captured webcam frame could not be decoded.');
-    }
-    final img.Image resized = img.copyResize(
-      img.bakeOrientation(decoded),
-      width: width,
-      height: height,
-      interpolation: img.Interpolation.linear,
-    );
-    final Float32List input = Float32List(width * height * 3);
-    int offset = 0;
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
-        final img.Pixel pixel = resized.getPixel(x, y);
-        input[offset++] = pixel.r / 255.0;
-        input[offset++] = pixel.g / 255.0;
-        input[offset++] = pixel.b / 255.0;
-      }
-    }
-    return input;
-  }
-
-  List<double> _tensorValues(Tensor tensor) {
-    final Object raw = tensor.dataSync<Object>();
-    if (raw is Float32List) {
-      return raw.toList(growable: false);
-    }
-    if (raw is Float64List) {
-      return raw.toList(growable: false);
-    }
-    if (raw is Int32List) {
-      return raw.map((int value) => value.toDouble()).toList(growable: false);
-    }
-    if (raw is List) {
-      return raw
-          .whereType<num>()
-          .map((num value) => value.toDouble())
-          .toList(growable: false);
-    }
-    throw StateError('The web scanner model returned an unreadable tensor.');
-  }
 
   @override
-  Future<void> toggleTorch({required bool enabled}) async {}
+  Future<Either<Failure, Unit>> switchCamera() async => left(
+    ScannerFailures.webUnsupported(
+      'Camera switching is not available on the web scanner.',
+    ),
+  );
 
   @override
-  Future<void> switchCamera() async {}
+  Future<Either<Failure, Unit>> pauseInference() async => right(unit);
 
   @override
-  Future<void> pauseInference() async {}
-
-  @override
-  Future<void> resumeInference() async {}
+  Future<Either<Failure, Unit>> resumeInference() async => right(unit);
 
   @override
   void dispose() {

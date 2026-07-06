@@ -50,13 +50,36 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       body: quizAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => const _QuizErrorBody(),
-        data: (QuizState? state) => _buildData(context, state),
+        data: (QuizState? state) => state == null
+            ? const _QuizEmptyBody()
+            : _QuizDataBody(
+                state: state,
+                controller: _controller,
+                onCheck: _checkAnswer,
+                onNext: _next,
+              ),
       ),
     );
   }
+}
 
-  Widget _buildData(BuildContext context, QuizState? state) {
-    if (state == null) return const _QuizEmptyBody();
+// ─── Body ──────────────────────────────────────────────────────────────────────
+
+class _QuizDataBody extends ConsumerWidget {
+  const _QuizDataBody({
+    required this.state,
+    required this.controller,
+    required this.onCheck,
+    required this.onNext,
+  });
+
+  final QuizState state;
+  final TextEditingController controller;
+  final VoidCallback onCheck;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     if (state.status == QuizStatus.complete) {
       return QuizResultCard(
         score: state.correctCount,
@@ -67,14 +90,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     }
     return _QuizBody(
       quizState: state,
-      controller: _controller,
-      onCheck: _checkAnswer,
-      onNext: _next,
+      controller: controller,
+      onCheck: onCheck,
+      onNext: onNext,
     );
   }
 }
-
-// ─── Body ──────────────────────────────────────────────────────────────────────
 
 class _QuizErrorBody extends StatelessWidget {
   const _QuizErrorBody();

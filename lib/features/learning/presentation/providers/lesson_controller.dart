@@ -47,8 +47,8 @@ class LessonController extends _$LessonController {
             .forLesson(lessonId);
         final int startIndex =
             (saved != null && !saved.completed && lesson.steps.isNotEmpty)
-                ? saved.currentStepIndex.clamp(0, lesson.steps.length - 1)
-                : 0;
+            ? saved.currentStepIndex.clamp(0, lesson.steps.length - 1)
+            : 0;
         return AsyncData<LessonState?>(
           LessonState(
             lesson: lesson,
@@ -95,7 +95,8 @@ class LessonController extends _$LessonController {
         .where((String p) => p.isNotEmpty)
         .toList();
     final bool isCorrect = parts.any((String p) => step.expected.contains(p));
-    final bool isFirstAttempt = current.attemptStatus == AttemptStatus.idle ||
+    final bool isFirstAttempt =
+        current.attemptStatus == AttemptStatus.idle ||
         current.attemptStatus == AttemptStatus.checking;
     state = AsyncData<LessonState?>(
       current.copyWith(
@@ -238,17 +239,19 @@ class LessonController extends _$LessonController {
       );
       state = AsyncData<LessonState?>(completed);
       unawaited(
-        ref.read(lessonProgressNotifierProvider.notifier).saveProgress(
-          LessonProgress(
-            lessonId: completed.lesson.id,
-            currentStepIndex: completed.lesson.steps.length,
-            totalSteps: completed.lesson.steps.length,
-            completed: true,
-            score: completed.score,
-            lastModified: DateTime.now(),
-            completedAt: DateTime.now(),
-          ),
-        ),
+        ref
+            .read(lessonProgressNotifierProvider.notifier)
+            .saveProgress(
+              LessonProgress(
+                lessonId: completed.lesson.id,
+                currentStepIndex: completed.lesson.steps.length,
+                totalSteps: completed.lesson.steps.length,
+                completed: true,
+                score: completed.score,
+                lastModified: DateTime.now(),
+                completedAt: DateTime.now(),
+              ),
+            ),
       );
       unawaited(_saveLessonProgress(completed));
       return;
@@ -262,16 +265,18 @@ class LessonController extends _$LessonController {
       ),
     );
     unawaited(
-      ref.read(lessonProgressNotifierProvider.notifier).saveProgress(
-        LessonProgress(
-          lessonId: current.lesson.id,
-          currentStepIndex: nextIndex,
-          totalSteps: current.lesson.steps.length,
-          completed: false,
-          score: 0,
-          lastModified: DateTime.now(),
-        ),
-      ),
+      ref
+          .read(lessonProgressNotifierProvider.notifier)
+          .saveProgress(
+            LessonProgress(
+              lessonId: current.lesson.id,
+              currentStepIndex: nextIndex,
+              totalSteps: current.lesson.steps.length,
+              completed: false,
+              score: 0,
+              lastModified: DateTime.now(),
+            ),
+          ),
     );
   }
 
@@ -290,16 +295,18 @@ class LessonController extends _$LessonController {
     final LessonState? current = state.value;
     if (current == null) return;
     unawaited(
-      ref.read(lessonProgressNotifierProvider.notifier).saveProgress(
-        LessonProgress(
-          lessonId: current.lesson.id,
-          currentStepIndex: 0,
-          totalSteps: current.lesson.steps.length,
-          completed: false,
-          score: 0,
-          lastModified: DateTime.now(),
-        ),
-      ),
+      ref
+          .read(lessonProgressNotifierProvider.notifier)
+          .saveProgress(
+            LessonProgress(
+              lessonId: current.lesson.id,
+              currentStepIndex: 0,
+              totalSteps: current.lesson.steps.length,
+              completed: false,
+              score: 0,
+              lastModified: DateTime.now(),
+            ),
+          ),
     );
     state = AsyncData<LessonState?>(
       LessonState(

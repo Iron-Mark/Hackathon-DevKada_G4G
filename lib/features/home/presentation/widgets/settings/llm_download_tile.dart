@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:kudlit_ph/features/home/presentation/providers/app_preferences_provider.dart';
+import 'package:kudlit_ph/features/translator/data/datasources/local_gemma_datasource.dart';
 import 'package:kudlit_ph/features/translator/domain/entities/gemma_model_info.dart';
 import 'package:kudlit_ph/features/translator/presentation/providers/ai_inference_provider.dart';
 import 'package:kudlit_ph/features/translator/presentation/providers/ai_inference_state.dart';
+import 'package:kudlit_ph/features/translator/presentation/providers/translator_providers.dart';
 
 import 'profile_management_action_button.dart';
 
-/// Settings tile for the Gemma 4 LLM model (Butty offline AI).
-///
-/// Shows install status and a download/cancel button driven by
-/// [AiInferenceNotifier] so it stays in sync with the chat screen.
 class LlmDownloadTile extends ConsumerWidget {
   const LlmDownloadTile({super.key});
 
@@ -23,6 +21,12 @@ class LlmDownloadTile extends ConsumerWidget {
     final AsyncValue<AiInferenceState> stateAsync = ref.watch(
       aiInferenceNotifierProvider,
     );
+    final AsyncValue<AppPreferences> prefsAsync = ref.watch(
+      appPreferencesNotifierProvider,
+    );
+    final AsyncValue<LocalGemmaReadiness> readinessAsync = ref.watch(
+      localModelReadinessProvider,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -31,19 +35,16 @@ class LlmDownloadTile extends ConsumerWidget {
         children: <Widget>[
           const _TileHeader(
             icon: Icons.psychology_rounded,
-            label: 'Gemma 4 E2B',
-            sublabel: 'Butty offline AI  ·  ~2.4 GB',
+            label: 'Butty replies',
+            sublabel: 'Offline replies  ·  large download',
           ),
           const SizedBox(height: 10),
-          stateAsync.when(
-            loading: () => const _CheckingRow(),
-            error: (Object e, _) => _ErrRow(message: e.toString()),
-            data: (AiInferenceState s) => _LlmStatusRow(
-              state: s,
-              onDownload: notifier.downloadLocalModel,
-              onCancel: notifier.cancelDownload,
-              onTrigger: (GemmaModelInfo m) => notifier.triggerLocalDownload(m),
-            ),
+          _LlmStatusRow(
+            stateAsync: stateAsync,
+            prefsAsync: prefsAsync,
+            readinessAsync: readinessAsync,
+            onCancel: notifier.cancelDownload,
+            onTrigger: (GemmaModelInfo m) => notifier.triggerLocalDownload(m),
           ),
         ],
       ),
@@ -51,65 +52,117 @@ class LlmDownloadTile extends ConsumerWidget {
   }
 }
 
-// ─── State row ────────────────────────────────────────────────────────────────
-
 class _LlmStatusRow extends StatelessWidget {
   const _LlmStatusRow({
-    required this.state,
-    required this.onDownload,
+    required this.stateAsync,
+    required this.prefsAsync,
+    required this.readinessAsync,
     required this.onCancel,
     required this.onTrigger,
   });
 
-  final AiInferenceState state;
-  final Future<void> Function() onDownload;
+  final AsyncValue<AiInferenceState> stateAsync;
+  final AsyncValue<AppPreferences> prefsAsync;
+  final AsyncValue<LocalGemmaReadiness> readinessAsync;
   final void Function() onCancel;
   final void Function(GemmaModelInfo) onTrigger;
 
   @override
   Widget build(BuildContext context) {
-    return switch (state) {
-      AiReady(:final AiPreference mode, :final GemmaModelInfo activeModel) =>
-        _ReadyRow(
-          modelName: activeModel.name,
-          cloudMode: mode == AiPreference.cloud,
-        ),
-      AiLocalModelMissing(:final String? note) => _ActionRow(
-        badge: const _StatusBadge(label: 'Not downloaded', ok: false),
-        primary: 'Download',
-        onPrimary: onDownload,
-        note: note,
-      ),
-      AiDownloading(
-        :final GemmaModelInfo model,
-        :final int progress,
-        :final String? statusMessage,
-      ) =>
-        _ProgressRow(
-          label: model.name,
-          progress: progress,
-          onCancel: onCancel,
-          statusMessage: statusMessage,
-        ),
-      AiInferenceError(:final String message) => _ErrRow(message: message),
-      _ => const _CheckingRow(),
+    if (stateAsync.hasError) {
+      return _ErrRow(
+        message: _friendlyLlmModelError(stateAsync.asError!.error.toString()),
+      );
+    }
+
+    final AiInferenceState? state = stateAsync.value;
+    if (state is AiDownloading) {
+      return _ProgressRow(
+        progress: state.progress,
+        onCancel: onCancel,
+        statusMessage: state.statusMessage,
+      );
+    }
+    if (state is AiInferenceError) {
+      return _ErrRow(message: _friendlyLlmModelError(state.message));
+    }
+
+    if (prefsAsync.hasError) {
+      return _ErrRow(
+        message: _friendlyLlmModelError(prefsAsync.asError!.error.toString()),
+      );
+    }
+    if (readinessAsync.hasError) {
+      return _ErrRow(
+        message: _friendlyLlmModelError(readinessAsync.error.toString()),
+      );
+    }
+
+    final AppPreferences? prefs = prefsAsync.value;
+    final LocalGemmaReadiness? readiness = readinessAsync.value;
+    final GemmaModelInfo? activeModel = switch (state) {
+      AiReady(:final GemmaModelInfo activeModel) => activeModel,
+      AiLocalModelMissing(:final GemmaModelInfo model) => model,
+      _ => null,
     };
+
+    if (prefs == null || readiness == null || activeModel == null) {
+      return const _CheckingRow();
+    }
+
+    if (readiness.installed && readiness.usable) {
+      return _ReadyRow(
+        cloudMode: prefs.aiPreference == AiPreference.cloud,
+        note: prefs.aiPreference == AiPreference.cloud
+            ? 'Downloaded and ready whenever you switch to Offline mode.'
+            : 'Downloaded and ready to use without internet.',
+      );
+    }
+
+    return _ActionRow(
+      badge: _StatusBadge(
+        label: readiness.installed ? 'Almost ready' : 'Needs download',
+        ok: readiness.installed ? null : false,
+      ),
+      primary: readiness.installed ? 'Reload' : 'Download',
+      onPrimary: () => onTrigger(activeModel),
+      note: readiness.installed
+          ? 'We are still getting this ready.'
+          : 'Download once to use Butty without internet.',
+    );
   }
 }
 
 class _ReadyRow extends StatelessWidget {
-  const _ReadyRow({required this.modelName, required this.cloudMode});
+  const _ReadyRow({required this.cloudMode, this.note});
 
-  final String modelName;
   final bool cloudMode;
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
-    if (cloudMode) {
-      return const _StatusBadge(label: 'Cloud mode — not needed', ok: null);
-    }
-    return Row(
-      children: <Widget>[_StatusBadge(label: '$modelName installed', ok: true)],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            _StatusBadge(
+              label: cloudMode ? 'Downloaded' : 'Ready offline',
+              ok: true,
+            ),
+          ],
+        ),
+        if (note != null) ...<Widget>[
+          const SizedBox(height: 8),
+          Text(
+            note!,
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -159,13 +212,11 @@ class _ActionRow extends StatelessWidget {
 
 class _ProgressRow extends StatelessWidget {
   const _ProgressRow({
-    required this.label,
     required this.progress,
     required this.onCancel,
     this.statusMessage,
   });
 
-  final String label;
   final int progress;
   final VoidCallback onCancel;
   final String? statusMessage;
@@ -181,7 +232,7 @@ class _ProgressRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             Text(
-              'Downloading $label… $progress%',
+              'Downloading… $progress%',
               style: TextStyle(color: cs.primary, fontSize: 13),
             ),
             GestureDetector(
@@ -206,8 +257,6 @@ class _ProgressRow extends StatelessWidget {
     );
   }
 }
-
-// ─── Shared small widgets ─────────────────────────────────────────────────────
 
 class _TileHeader extends StatelessWidget {
   const _TileHeader({
@@ -259,7 +308,6 @@ class _TileHeader extends StatelessWidget {
   }
 }
 
-/// `ok: true` → green installed, `ok: false` → red missing, `ok: null` → muted.
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.label, required this.ok});
 
@@ -320,4 +368,45 @@ class _ErrRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _friendlyLlmModelError(String rawMessage) {
+  final String message = rawMessage.trim();
+  if (message.isEmpty) {
+    return 'Offline setup is paused. You can stay on internet mode and try again later.';
+  }
+
+  final String lower = message.toLowerCase();
+  final bool looksLikeNetworkIssue =
+      lower.contains('socketexception') ||
+      lower.contains('clientexception') ||
+      lower.contains('failed host lookup') ||
+      lower.contains('network') ||
+      lower.contains('connection') ||
+      lower.contains('timeout') ||
+      lower.contains('supabase.co');
+  if (looksLikeNetworkIssue) {
+    return 'Check your connection, then retry the model download.';
+  }
+
+  if (lower.contains('cancel')) {
+    return 'Download canceled. You can retry when you are ready.';
+  }
+
+  if (lower.contains('no ai models configured')) {
+    return 'Offline downloads are not available right now. You can stay on internet mode for now.';
+  }
+
+  final bool looksTechnical =
+      lower.contains('exception') ||
+      lower.contains('stacktrace') ||
+      lower.contains('statuscode') ||
+      lower.contains('errno') ||
+      lower.contains('uri=') ||
+      lower.contains('https://');
+  if (looksTechnical) {
+    return 'Offline setup is paused. You can stay on internet mode and try again later.';
+  }
+
+  return message;
 }

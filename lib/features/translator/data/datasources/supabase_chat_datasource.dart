@@ -49,15 +49,17 @@ class SupabaseChatDatasource {
           .order('created_at', ascending: false)
           .limit(limit);
 
-      final List<ChatMessage> messages = rows.map((dynamic raw) {
-        final Map<String, dynamic> r = raw as Map<String, dynamic>;
-        return ChatMessage(
-          remoteId: r['id'] as String?,
-          text: r['content'] as String? ?? '',
-          isUser: r['is_user'] as bool? ?? false,
-          timestamp: DateTime.parse(r['created_at'] as String),
-        );
-      }).toList(growable: false);
+      final List<ChatMessage> messages = rows
+          .map((dynamic raw) {
+            final Map<String, dynamic> r = raw as Map<String, dynamic>;
+            return ChatMessage(
+              remoteId: r['id'] as String?,
+              text: r['content'] as String? ?? '',
+              isUser: r['is_user'] as bool? ?? false,
+              timestamp: DateTime.parse(r['created_at'] as String),
+            );
+          })
+          .toList(growable: false);
 
       return messages.reversed.toList(growable: false);
     } catch (e) {

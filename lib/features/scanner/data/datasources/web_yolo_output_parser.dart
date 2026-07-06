@@ -17,6 +17,10 @@ class WebYoloOutputParser {
   final double minBoxArea;
   final double edgeMargin;
 
+  bool canParse(List<double> output, {List<int>? shape}) {
+    return _rowsFor(output, shape).isNotEmpty;
+  }
+
   List<BaybayinDetection> parse(List<double> output, {List<int>? shape}) {
     if (labels.isEmpty || output.isEmpty) return const <BaybayinDetection>[];
 
@@ -42,7 +46,7 @@ class WebYoloOutputParser {
     final int attrsWithObjectness = labels.length + 5;
     final int attrsWithoutObjectness = labels.length + 4;
 
-    if (shape != null && shape.length >= 3) {
+    if (shape != null && shape.length >= 2) {
       final int second = shape[shape.length - 2];
       final int third = shape[shape.length - 1];
       if (third == attrsWithObjectness || third == attrsWithoutObjectness) {

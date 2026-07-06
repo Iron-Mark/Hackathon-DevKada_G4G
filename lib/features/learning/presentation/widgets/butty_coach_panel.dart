@@ -253,7 +253,6 @@ class _CoachActions extends StatelessWidget {
       minimumSize: const Size(44, 44),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
-      visualDensity: VisualDensity.compact,
     );
     return Wrap(
       spacing: 8,
@@ -276,7 +275,6 @@ class _CoachActions extends StatelessWidget {
               minimumSize: const Size(44, 44),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14),
-              visualDensity: VisualDensity.compact,
             ),
           ),
         if (showPrimaryAction)
@@ -298,7 +296,6 @@ class _CoachActions extends StatelessWidget {
               minimumSize: const Size(44, 44),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14),
-              visualDensity: VisualDensity.compact,
             ),
           ),
       ],

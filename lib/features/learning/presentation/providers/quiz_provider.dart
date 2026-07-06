@@ -107,7 +107,9 @@ class QuizNotifier extends _$QuizNotifier {
     state = AsyncData<QuizState?>(
       current.copyWith(
         status: isCorrect ? QuizStatus.correct : QuizStatus.wrong,
-        correctCount: isCorrect ? current.correctCount + 1 : current.correctCount,
+        correctCount: isCorrect
+            ? current.correctCount + 1
+            : current.correctCount,
       ),
     );
   }
@@ -125,10 +127,7 @@ class QuizNotifier extends _$QuizNotifier {
     }
 
     state = AsyncData<QuizState?>(
-      current.copyWith(
-        currentIndex: nextIndex,
-        status: QuizStatus.answering,
-      ),
+      current.copyWith(currentIndex: nextIndex, status: QuizStatus.answering),
     );
   }
 

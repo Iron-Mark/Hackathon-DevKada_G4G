@@ -33,13 +33,10 @@ Future<int> streak(Ref ref) async {
 }
 
 int _computeStreak(List<Map<String, dynamic>> rows) {
-  final Set<String> completionDates = rows
-      .map((Map<String, dynamic> r) {
-        final DateTime d =
-            DateTime.parse(r['completed_at'] as String).toLocal();
-        return _dateKey(d);
-      })
-      .toSet();
+  final Set<String> completionDates = rows.map((Map<String, dynamic> r) {
+    final DateTime d = DateTime.parse(r['completed_at'] as String).toLocal();
+    return _dateKey(d);
+  }).toSet();
 
   if (completionDates.isEmpty) return 0;
 

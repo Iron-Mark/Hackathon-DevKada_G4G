@@ -1,38 +1,107 @@
-# Kudlit System Audit & Next Steps
+# Kudlit System Audit Next Steps
 
-Based on the recent PRs and audit documents, here is an overview of missing features and how to improve them properly to ensure the system works as intended.
+Last reviewed: 2026-05-10
 
-## 1. Phone & Google Authentication
-**Status:** Placeholder UI exists, but domain/data layers and real Supabase integration are incomplete or untested.
-**Improvements:**
-- Enable SMS Auth in `supabase/config.toml` (`enable_signup = true` under `[auth.sms]`).
-- Complete the domain logic (`AuthRepository` needs `signInWithPhoneOtpStart`, `verifyPhoneOtp`, `signInWithGoogle`).
-- Wire the UI to the Riverpod `AuthNotifier` so that the Login Screen correctly redirects upon successful OAuth or OTP verification without route hacks.
+This file is now a backlog ownership index. It separates immediate technical
+follow-up from longer-running product/backend decisions so this document does
+not read like an active sprint plan.
 
-## 2. Profile Management
-**Status:** First-wave features (Edit Name, Privacy Controls, Accessibility) are integrated with Supabase via `ProfileManagementRepository`.
-**Improvements (Next Wave):**
-- **Linked Sign-in Methods:** Allow users to link Phone/Google to existing accounts.
-- **Session Activity:** Display active devices and add revocation capabilities.
-- **Learning Progress Dashboard:** Currently read-only. Needs a reliable progress persistence model in the backend before enabling writes or resets.
-- **Account Deletion:** Implement the backend token/session invalidation guarantees before removing the placeholder for this critical feature.
+## Immediate Backlog
 
-## 3. Scanner & Translator Native Capabilities
-**Status:** YOLOv12 and Gemma 4 are planned for offline-first capabilities.
-**Improvements:**
-- Implement platform-specific ML model loading handling. Use the `android_model_link` and `ios_model_link` schema additions robustly.
-- Ensure the Gallery picker (YOLO detection on selected images) handles large images efficiently without blocking the main thread.
-- Establish the local persistence layer for Scanner History and Translator Bookmarks.
+### Phone and Google Authentication
 
-## 4. Technical Debt & Cleanup
-**Status:** `build_runner` is broken; some merge conflicts exist.
-**Improvements:**
-- Manually write `.g.dart` files or standard boilerplate until `build_runner` is fixed.
-- Centralize app strings into `lib/app/constants.dart` (as requested by JamTheDev).
-- Refactor boolean return types in auth to explicit enums (e.g., `SignUpStatus.confirmationPending`).
+**Owner:** Auth/backend implementation
 
-## Next Steps
-1. **Fix Backend Config:** Update `config.toml` to enable SMS and MFA.
-2. **Complete Auth Wiring:** Finish the `PhoneSignInScreen` and Google Auth integration.
-3. **Address Review Notes:** Extract constants and change bools to enums in the Auth data layer.
-4. **Deploy Next-Wave Profile Features:** Begin work on Linked Sign-in Methods and Account Deletion backend logic.
+**Status:** Active backlog. UI and planning docs exist, but provider, Supabase,
+and end-to-end verification still need final implementation work.
+
+Remaining work:
+
+- Confirm Supabase SMS and provider configuration in the target environment.
+- Finish any missing `AuthRepository` phone OTP and Google sign-in methods.
+- Wire the login surfaces through `AuthNotifier` without route-level hacks.
+- Verify redirect behavior after successful OAuth and OTP flows.
+
+Reference docs:
+
+- [supabase_phone_otp_integration.md](supabase_phone_otp_integration.md)
+- [supabase_phone_google_auth_plan.md](supabase_phone_google_auth_plan.md)
+
+### Auth Review Notes
+
+**Owner:** Auth/data cleanup
+
+**Status:** Active backlog.
+
+Remaining work:
+
+- Centralize repeated app strings into shared constants where still applicable.
+- Replace boolean auth result values with explicit status enums where the code
+  still needs clearer state.
+
+Reference doc:
+
+- [jam_the_dev_review_notes.md](jam_the_dev_review_notes.md)
+
+## Strategic Backlog
+
+### Profile Management Next Wave
+
+**Owner:** Profile/backend implementation
+
+**Status:** Strategic backlog. First-wave profile management is implemented, but
+account-level capabilities need backend guarantees before UI activation.
+
+Remaining work:
+
+- Linked sign-in methods for Phone/Google.
+- Session activity and revocation.
+- Reliable learning-progress persistence before enabling writes or resets.
+- Account deletion with backend session/token invalidation guarantees.
+
+Reference docs:
+
+- [profile_management_feature_plan.md](profile_management_feature_plan.md)
+- [PR_PROFILE_MANAGEMENT_E2E.md](PR_PROFILE_MANAGEMENT_E2E.md)
+
+### Scanner and Translator Native Capability Backlog
+
+**Owner:** Scanner/ML implementation
+
+**Status:** Active but partially implemented. Scanner layout hardening has been
+verified separately; model-loading and offline capability work remains tracked
+in dedicated audit docs.
+
+Remaining work:
+
+- Close the active items in [scanner_vision_model_audit.md](scanner_vision_model_audit.md).
+- Keep Gemma/offline model-loading work tracked in
+  [gemma_offline_model_loading_audit.md](gemma_offline_model_loading_audit.md).
+- Keep scanner history and translator bookmark persistence aligned with profile
+  and Supabase sync decisions.
+
+## Verified Elsewhere
+
+### Scan Layout Hardening
+
+**Owner:** Scan UI QA
+
+**Status:** Verified and no longer tracked as open work here.
+
+Latest strict evidence:
+
+- `qa-artifact/scan-layout-strict-overlap/report.json`
+- `qa-artifact/scan-layout-strict-overlap/scan-layout-overlap-contact-sheet.html`
+- `qa-artifact/scan-layout-strict-overlap/matrix/`
+- `qa-artifact/scan-layout-strict-overlap/transitions/`
+
+Latest verified timestamp: `2026-05-10T18:08:55.7427350+08:00`.
+
+The current matrix covers `360x740`, `390x844`, `430x932`, `844x390`,
+`1024x768`, plus strict tiny landscape checks at `340x260` and `320x240`.
+
+## Historical Notes
+
+Older wording in this file described `build_runner` and merge conflicts as
+current blockers. Those claims are not treated as current work unless a fresh
+verification pass reproduces them.

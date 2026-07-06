@@ -15,7 +15,20 @@ import 'package:path_provider/path_provider.dart';
 /// Layout:
 ///   `<app-support>/yolo_models/<id>.{tflite|mlpackage.zip}`
 ///   `<app-support>/yolo_models/<id>.version`   (text file, integer)
-class YoloModelCache {
+abstract class YoloModelCacheStore {
+  Future<int?> downloadedVersion(String modelId);
+  Future<String?> pathFor(String modelId);
+  Future<bool> isUpToDate(String modelId, int version);
+  Future<String> download(
+    String modelId,
+    String url, {
+    required int version,
+    void Function(int received, int total)? onProgress,
+  });
+  Future<void> clear(String modelId);
+}
+
+class YoloModelCache implements YoloModelCacheStore {
   YoloModelCache._();
 
   static final YoloModelCache instance = YoloModelCache._();
@@ -44,6 +57,7 @@ class YoloModelCache {
 
   /// Returns the cached version integer for [modelId], or `null` if no
   /// downloaded copy exists.
+  @override
   Future<int?> downloadedVersion(String modelId) async {
     final File model = await _modelFile(modelId);
     if (!model.existsSync()) return null;
@@ -55,12 +69,14 @@ class YoloModelCache {
 
   /// Returns the absolute path of the cached model for [modelId], or `null`
   /// if it has not been downloaded yet.
+  @override
   Future<String?> pathFor(String modelId) async {
     final File file = await _modelFile(modelId);
     return file.existsSync() ? file.path : null;
   }
 
   /// True when a local copy exists at the requested [version] or newer.
+  @override
   Future<bool> isUpToDate(String modelId, int version) async {
     final int? local = await downloadedVersion(modelId);
     return local != null && local >= version;
@@ -70,6 +86,7 @@ class YoloModelCache {
   ///
   /// [onProgress] is called with `(bytesReceived, totalBytes)` each chunk;
   /// `totalBytes` is `-1` when the server does not send Content-Length.
+  @override
   Future<String> download(
     String modelId,
     String url, {
@@ -112,6 +129,7 @@ class YoloModelCache {
   }
 
   /// Deletes the cached model file (and its version sidecar) for [modelId].
+  @override
   Future<void> clear(String modelId) async {
     final File file = await _modelFile(modelId);
     if (file.existsSync()) await file.delete();

@@ -22,7 +22,11 @@ class TranslationResult {
   final bool isBookmarked;
   final DateTime timestamp;
 
-  TranslationResult copyWith({int? id, bool? isBookmarked, String? aiResponse}) {
+  TranslationResult copyWith({
+    int? id,
+    bool? isBookmarked,
+    String? aiResponse,
+  }) {
     return TranslationResult(
       id: id ?? this.id,
       inputText: inputText,

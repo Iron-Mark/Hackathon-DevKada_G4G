@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +30,9 @@ class PhoneOtpScreen extends ConsumerStatefulWidget {
 
 class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
   static const int _length = 6;
+  static const int _resendCooldownSeconds = 30;
+  static const int _maxVerifyAttempts = 5;
+  static const int _lockoutSeconds = 60;
 
   final List<TextEditingController> _controllers =
       List<TextEditingController>.generate(
@@ -43,10 +48,24 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
   bool _isResending = false;
   String? _errorMessage;
   String? _resendMessage;
-  final int _resendCooldown = 0;
+  int _resendCooldown = 0;
+  int _failedAttempts = 0;
+  int _lockoutCountdown = 0;
+  Timer? _resendTimer;
+  Timer? _lockoutTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // OTP was requested by the previous screen — start the cooldown
+    // immediately so the user cannot hammer "Resend" right away.
+    _startResendCooldown();
+  }
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
+    _lockoutTimer?.cancel();
     for (final TextEditingController c in _controllers) {
       c.dispose();
     }
@@ -61,6 +80,7 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
 
   bool get _isComplete => _otp.length == _length;
   bool get _hasError => _errorMessage != null;
+  bool get _isLockedOut => _lockoutCountdown > 0;
 
   String _mapFailure(Failure failure) => failure.when(
     network: (String msg) => '${AppConstants.networkErrorPrefix}$msg',
@@ -74,10 +94,56 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
     passwordResetEmailSent: () => AppConstants.unexpectedError,
   );
 
+  void _startResendCooldown() {
+    _resendTimer?.cancel();
+    setState(() => _resendCooldown = _resendCooldownSeconds);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_resendCooldown <= 1) {
+        t.cancel();
+        setState(() => _resendCooldown = 0);
+      } else {
+        setState(() => _resendCooldown -= 1);
+      }
+    });
+  }
+
+  void _startLockout() {
+    _lockoutTimer?.cancel();
+    setState(() {
+      _lockoutCountdown = _lockoutSeconds;
+      _errorMessage =
+          'Too many incorrect attempts. Try again in ${_lockoutSeconds}s.';
+    });
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_lockoutCountdown <= 1) {
+        t.cancel();
+        setState(() {
+          _lockoutCountdown = 0;
+          _failedAttempts = 0;
+          _errorMessage = null;
+        });
+      } else {
+        setState(() {
+          _lockoutCountdown -= 1;
+          _errorMessage =
+              'Too many incorrect attempts. Try again in ${_lockoutCountdown}s.';
+        });
+      }
+    });
+  }
+
   void _onDigitChanged(int index, String value) {
     if (_errorMessage != null || _resendMessage != null) {
       setState(() {
-        _errorMessage = null;
+        if (!_isLockedOut) _errorMessage = null;
         _resendMessage = null;
       });
     }
@@ -92,11 +158,12 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
     } else {
       _focusNodes[index].unfocus();
     }
-    if (_isComplete) _submit();
+    // Do not auto-submit when locked out — user must wait for backoff.
+    if (_isComplete && !_isLockedOut) _submit();
   }
 
   Future<void> _submit() async {
-    if (!_isComplete || _isLoading) return;
+    if (!_isComplete || _isLoading || _isLockedOut) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -109,13 +176,22 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
     if (!mounted) return;
     result.fold(
       (Failure failure) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = _mapFailure(failure);
-        });
+        _failedAttempts += 1;
+        if (_failedAttempts >= _maxVerifyAttempts) {
+          setState(() => _isLoading = false);
+          _startLockout();
+        } else {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = _mapFailure(failure);
+          });
+        }
       },
       (_) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _failedAttempts = 0;
+        });
         final NavigatorState navigator = Navigator.of(context);
         while (navigator.canPop()) {
           navigator.pop();
@@ -132,7 +208,7 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
   }
 
   Future<void> _resendCode() async {
-    if (_isResending || _isLoading) return;
+    if (_isResending || _isLoading || _resendCooldown > 0) return;
     setState(() {
       _isResending = true;
       _errorMessage = null;
@@ -157,6 +233,7 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
           _isResending = false;
           _resendMessage = 'A new code was sent.';
         });
+        _startResendCooldown();
       },
     );
   }
@@ -182,6 +259,7 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
           errorMessage: _errorMessage,
           isLoading: _isLoading,
           isResending: _isResending,
+          isLockedOut: _isLockedOut,
           resendMessage: _resendMessage,
           resendCooldown: _resendCooldown,
           onDigitChanged: _onDigitChanged,
@@ -210,6 +288,7 @@ class _OtpSheetBody extends StatelessWidget {
     required this.errorMessage,
     required this.isLoading,
     required this.isResending,
+    required this.isLockedOut,
     required this.resendMessage,
     required this.resendCooldown,
     required this.onDigitChanged,
@@ -224,6 +303,7 @@ class _OtpSheetBody extends StatelessWidget {
   final String? errorMessage;
   final bool isLoading;
   final bool isResending;
+  final bool isLockedOut;
   final String? resendMessage;
   final int resendCooldown;
   final void Function(int index, String value) onDigitChanged;
@@ -266,7 +346,7 @@ class _OtpSheetBody extends StatelessWidget {
         AuthSubmitButton(
           label: 'Verify',
           isLoading: isLoading,
-          onTap: onSubmit,
+          onTap: isLockedOut ? () {} : onSubmit,
         ),
         if (resendMessage != null) ...<Widget>[
           const SizedBox(height: 12),

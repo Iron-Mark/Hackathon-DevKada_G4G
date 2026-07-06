@@ -83,9 +83,15 @@ class AiInferenceNotifier extends _$AiInferenceNotifier {
       return AiInferenceError(_failureMessage(f));
     }
     final bool installed = installedResult.getRight().getOrElse(() => false);
-    return installed
-        ? AiReady(mode: AiPreference.local, activeModel: active)
-        : AiLocalModelMissing(active);
+    if (installed) {
+      // The native engine loses its active model on every app restart while
+      // the downloaded file persists. Tell the datasource which model is
+      // installed so the first inference call can reactivate it on demand
+      // instead of silently falling back to cloud.
+      ref.read(localGemmaDatasourceProvider).rememberModel(active);
+      return AiReady(mode: AiPreference.local, activeModel: active);
+    }
+    return AiLocalModelMissing(active);
   }
 
   /// Picks the median-ranked model unless [preferredId] is set

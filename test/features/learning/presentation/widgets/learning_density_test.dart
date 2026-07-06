@@ -64,7 +64,12 @@ void main() {
       ),
     );
 
+    expect(find.byType(SingleChildScrollView), findsWidgets);
     expect(find.text('Got it'), findsOneWidget);
+    final Rect primary = tester.getRect(
+      find.widgetWithText(FilledButton, 'Got it'),
+    );
+    expect(primary.height, greaterThanOrEqualTo(44));
     expect(tester.takeException(), isNull);
   });
 

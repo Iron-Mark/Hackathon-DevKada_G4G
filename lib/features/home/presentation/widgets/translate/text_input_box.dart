@@ -44,7 +44,7 @@ class TextInputBox extends StatelessWidget {
                 hintText: 'Type in Filipino…',
                 hintStyle: TextStyle(
                   fontSize: 15,
-                  color: cs.onSurface.withAlpha(110),
+                  color: cs.onSurface.withAlpha(160),
                 ),
               ),
             ),

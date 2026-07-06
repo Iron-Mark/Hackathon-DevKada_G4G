@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:meta/meta.dart';
 
 /// Distinguishes the inference engine a model is built for.
@@ -60,19 +58,6 @@ class AiModelInfo {
   /// [ModelKind.llm] → flutter_gemma / MediaPipe LlmInference (Butty chatbot).
   /// [ModelKind.vision] → YOLO TFLite / mlpackage (OCR / camera pipeline).
   final ModelKind modelType;
-
-  /// Platform-appropriate download URL.
-  ///
-  /// Preference order: platform-specific link → generic [modelLink].
-  String get platformLink {
-    if (Platform.isAndroid && androidModelLink != null) {
-      return androidModelLink!;
-    }
-    if (Platform.isIOS && iosModelLink != null) {
-      return iosModelLink!;
-    }
-    return modelLink;
-  }
 
   /// Filename derived from [modelLink], used by `flutter_gemma`
   /// to check whether the model is already installed locally.

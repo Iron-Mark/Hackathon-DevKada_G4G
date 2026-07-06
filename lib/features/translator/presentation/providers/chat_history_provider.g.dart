@@ -6,7 +6,6 @@ part of 'chat_history_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-
 @ProviderFor(ChatHistoryNotifier)
 final chatHistoryNotifierProvider =
     AsyncNotifierProvider<ChatHistoryNotifier, List<ChatMessage>>.internal(

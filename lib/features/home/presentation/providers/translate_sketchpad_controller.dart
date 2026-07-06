@@ -117,14 +117,22 @@ class TranslateSketchpadController extends Notifier<TranslateSketchpadState> {
     final StringBuffer buffer = StringBuffer();
     bool localFailed = false;
     try {
+      // Prime + reactivate the offline model the same way Butty does
+      // (its mode selector reads this readiness provider). The sketchpad
+      // vision path calls `analyzeImage` directly, so without this the
+      // native engine has no active model after a restart and
+      // `getActiveModel()` throws — silently dropping to cloud. The probe
+      // is coalesced/fast-pathed, so this is cheap once warm.
+      await ref.read(localModelReadinessProvider.future);
       await for (final String chunk
           in ref
               .read(localGemmaDatasourceProvider)
               .analyzeImage(imageBytes, prompt: prompt)) {
         buffer.write(chunk);
         final String cleaned = cleanAssistantOutput(buffer.toString());
-        final String displayResponse =
-            GemmaPrompts.parseThinkBlock(cleaned).answer;
+        final String displayResponse = GemmaPrompts.parseThinkBlock(
+          cleaned,
+        ).answer;
         state = state.copyWith(
           aiBusy: true,
           aiResponse: displayResponse,
@@ -132,8 +140,9 @@ class TranslateSketchpadController extends Notifier<TranslateSketchpadState> {
         );
       }
       final String cleaned = cleanAssistantOutput(buffer.toString());
-      final String displayResponse =
-          GemmaPrompts.parseThinkBlock(cleaned).answer;
+      final String displayResponse = GemmaPrompts.parseThinkBlock(
+        cleaned,
+      ).answer;
       state = state.copyWith(
         aiBusy: false,
         aiResponse: displayResponse,
@@ -166,8 +175,9 @@ class TranslateSketchpadController extends Notifier<TranslateSketchpadState> {
       await for (final String chunk in stream) {
         buffer.write(chunk);
         final String cleaned = cleanAssistantOutput(buffer.toString());
-        final String displayResponse =
-            GemmaPrompts.parseThinkBlock(cleaned).answer;
+        final String displayResponse = GemmaPrompts.parseThinkBlock(
+          cleaned,
+        ).answer;
         state = state.copyWith(
           aiBusy: true,
           aiResponse: displayResponse,
@@ -175,8 +185,9 @@ class TranslateSketchpadController extends Notifier<TranslateSketchpadState> {
         );
       }
       final String cleaned = cleanAssistantOutput(buffer.toString());
-      final String displayResponse =
-          GemmaPrompts.parseThinkBlock(cleaned).answer;
+      final String displayResponse = GemmaPrompts.parseThinkBlock(
+        cleaned,
+      ).answer;
       state = state.copyWith(
         aiBusy: false,
         aiResponse: displayResponse,

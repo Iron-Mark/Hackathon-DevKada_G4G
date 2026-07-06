@@ -29,7 +29,7 @@ class AiInferenceRepositoryImpl implements AiInferenceRepository {
   /// a stale snapshot.
   final AiPreference Function() preferenceResolver;
 
-  bool get _useCloud => kIsWeb || preferenceResolver() == AiPreference.cloud;
+  bool get _useCloud => preferenceResolver() == AiPreference.cloud;
 
   @override
   Future<Either<Failure, List<GemmaModelInfo>>> getAvailableModels() async {
@@ -47,9 +47,6 @@ class AiInferenceRepositoryImpl implements AiInferenceRepository {
   Future<Either<Failure, bool>> isLocalModelInstalled(
     GemmaModelInfo model,
   ) async {
-    if (kIsWeb) {
-      return right(false);
-    }
     try {
       final bool installed = await localDatasource.isInstalled(model);
       return right(installed);
@@ -63,13 +60,6 @@ class AiInferenceRepositoryImpl implements AiInferenceRepository {
     GemmaModelInfo model, {
     void Function(int progress)? onProgress,
   }) async {
-    if (kIsWeb) {
-      return left(
-        const Failure.unknown(
-          message: 'Local model download is unsupported on web.',
-        ),
-      );
-    }
     try {
       await localDatasource.download(model, onProgress: onProgress);
       return right(unit);
@@ -80,9 +70,7 @@ class AiInferenceRepositoryImpl implements AiInferenceRepository {
 
   @override
   void cancelDownload() {
-    if (!kIsWeb) {
-      localDatasource.cancelDownload();
-    }
+    localDatasource.cancelDownload();
   }
 
   @override
@@ -150,7 +138,7 @@ class AiInferenceRepositoryImpl implements AiInferenceRepository {
     String mimeType = 'image/png',
     String? prompt,
   }) {
-    if (_useCloud) {
+    if (kIsWeb || _useCloud) {
       return cloudDatasource.analyzeImage(
         imageBytes,
         mimeType: mimeType,

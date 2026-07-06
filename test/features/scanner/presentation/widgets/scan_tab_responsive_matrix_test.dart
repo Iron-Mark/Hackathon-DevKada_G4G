@@ -128,7 +128,7 @@ void main() {
       final Rect noticeRect = tester.getRect(
         find.byKey(const ValueKey('scan-notice-panel')),
       );
-      final Rect shutterRect = tester.getRect(find.byTooltip('Capture Scan'));
+      final Rect shutterRect = tester.getRect(find.byTooltip('Retake'));
       final Finder rotateFinder = find.byTooltip('Switch camera');
       final bool hasRotate = rotateFinder.evaluate().isNotEmpty;
       final Rect rotateRect = hasRotate
@@ -277,11 +277,7 @@ void main() {
         lessThanOrEqualTo(viewport.width),
         reason: viewportCase.name,
       );
-      expect(
-        titleRect.top,
-        greaterThanOrEqualTo(0),
-        reason: viewportCase.name,
-      );
+      expect(titleRect.top, greaterThanOrEqualTo(0), reason: viewportCase.name);
       expect(
         titleRect.bottom,
         lessThanOrEqualTo(viewport.height),

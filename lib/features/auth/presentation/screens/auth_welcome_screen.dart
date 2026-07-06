@@ -58,12 +58,6 @@ class AuthWelcomeScreen extends StatelessWidget {
               icon: Icons.login_rounded,
               onTap: () => _openSignIn(context),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Authentication is UI-only for now.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           ],
         ),
       ),

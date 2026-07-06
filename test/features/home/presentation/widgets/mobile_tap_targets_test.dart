@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/butty_chat/chat_input_bar.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/butty_chat/suggested_questions_row.dart';
+import 'package:kudlit_ph/features/home/presentation/widgets/butty_chat/typing_bubble.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/home_tool_card.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/lesson_preview_card.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/translate/output_action_pill.dart';
@@ -20,6 +21,42 @@ void main() {
     final Rect firstChip = tester.getRect(find.byType(InkWell).first);
 
     expect(firstChip.height, greaterThanOrEqualTo(44));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Butty suggestion row clears the floating tab control', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 593));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: SuggestedQuestionsRow(onTap: (_) {})),
+      ),
+    );
+
+    final Rect scrollWindow = tester.getRect(find.byType(ListView));
+
+    expect(scrollWindow.right, lessThanOrEqualTo(224));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Butty suggestion row leaves shadow clearance on 390px phones', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: SuggestedQuestionsRow(onTap: (_) {})),
+      ),
+    );
+
+    final Rect scrollWindow = tester.getRect(find.byType(ListView));
+
+    expect(scrollWindow.right, lessThanOrEqualTo(282));
     expect(tester.takeException(), isNull);
   });
 
@@ -50,6 +87,25 @@ void main() {
 
     expect(sendAction.width, greaterThanOrEqualTo(44));
     expect(sendAction.height, greaterThanOrEqualTo(44));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Butty loading bubble stays compact on narrow phones', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 593));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: TypingBubble(animationsEnabled: false)),
+      ),
+    );
+
+    final Rect bubble = tester.getRect(find.byType(TypingBubble));
+
+    expect(bubble.width, lessThanOrEqualTo(180));
+    expect(bubble.height, lessThanOrEqualTo(64));
     expect(tester.takeException(), isNull);
   });
 

@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'glyph_item.dart';
 
 class GlyphPreviewRow extends StatelessWidget {
-  const GlyphPreviewRow({super.key, required this.items});
+  const GlyphPreviewRow({super.key, required this.items, this.muted = false});
 
   final List<(String, String)> items;
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +36,8 @@ class GlyphPreviewRow extends StatelessWidget {
   List<Widget> _glyphItems() {
     return items
         .map(
-          ((String, String) item) => GlyphItem(glyph: item.$1, label: item.$2),
+          ((String, String) item) =>
+              GlyphItem(glyph: item.$1, label: item.$2, muted: muted),
         )
         .toList();
   }

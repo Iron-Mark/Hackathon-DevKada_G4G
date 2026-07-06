@@ -20,7 +20,10 @@ BaybayinDetector baybayinDetector(Ref ref) {
       ? createWebBaybayinDetector(
           modelUrlResolver: () => _resolveWebVisionModelUrl(ref),
         )
-      : YoloBaybayinDetector();
+      : YoloBaybayinDetector(
+          modelPathResolver: () =>
+              ref.read(yoloModelPathProvider(YoloModelScope.camera).future),
+        );
   ref.onDispose(detector.dispose);
   return detector;
 }

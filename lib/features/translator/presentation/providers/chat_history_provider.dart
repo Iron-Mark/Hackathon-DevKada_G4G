@@ -42,7 +42,9 @@ class ChatHistoryNotifier extends _$ChatHistoryNotifier {
         final ChatMessage saved = await _local.insert(m);
         rehydrated.add(saved);
       } catch (e) {
-        debugPrint('[ChatHistory] cloud→local rehydrate failed (non-fatal): $e');
+        debugPrint(
+          '[ChatHistory] cloud→local rehydrate failed (non-fatal): $e',
+        );
       }
     }
     return rehydrated;

@@ -4,6 +4,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:kudlit_ph/features/home/presentation/providers/translate_sketchpad_controller.dart';
 import 'package:kudlit_ph/features/home/presentation/utils/safe_ai_output.dart';
 import 'package:kudlit_ph/features/home/presentation/widgets/learn/live_stroke_painter.dart';
+import 'package:kudlit_ph/features/home/presentation/widgets/translate/sketchpad_target_glyph_button.dart';
 
 class TranslateSketchpadModePanel extends StatefulWidget {
   const TranslateSketchpadModePanel({
@@ -28,27 +29,8 @@ class TranslateSketchpadModePanel extends StatefulWidget {
 
 class _TranslateSketchpadModePanelState
     extends State<TranslateSketchpadModePanel> {
-  final TextEditingController _targetController = TextEditingController();
   final List<List<Offset>> _strokes = <List<Offset>>[];
   final List<Offset> _current = <Offset>[];
-
-  @override
-  void dispose() {
-    _targetController.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(covariant TranslateSketchpadModePanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final String nextTarget = widget.state.target;
-    if (_targetController.text != nextTarget) {
-      _targetController.value = TextEditingValue(
-        text: nextTarget,
-        selection: TextSelection.collapsed(offset: nextTarget.length),
-      );
-    }
-  }
 
   void _onPanStart(DragStartDetails d) {
     setState(() {
@@ -115,7 +97,6 @@ class _TranslateSketchpadModePanelState
         else
           const Spacer(),
         _BottomBar(
-          targetController: _targetController,
           state: widget.state,
           canRequest: canRequest,
           disabledReason: widget.disabledReason,
@@ -197,7 +178,6 @@ class _InlineCanvas extends StatelessWidget {
 
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
-    required this.targetController,
     required this.state,
     required this.canRequest,
     required this.disabledReason,
@@ -207,7 +187,6 @@ class _BottomBar extends StatelessWidget {
     required this.onGetFeedback,
   });
 
-  final TextEditingController targetController;
   final TranslateSketchpadState state;
   final bool canRequest;
   final String? disabledReason;
@@ -236,45 +215,13 @@ class _BottomBar extends StatelessWidget {
           Row(
             children: <Widget>[
               Expanded(
-                child: TextField(
-                  controller: targetController,
-                  onChanged: onTargetChanged,
-                  maxLength: 2,
-                  decoration: InputDecoration(
-                    hintText: 'Target glyph (e.g. ba)',
-                    filled: true,
-                    fillColor: cs.surfaceContainerLow,
-                    isDense: true,
-                    counterText: '',
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: cs.outline),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: cs.outline),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: cs.primary, width: 1.5),
-                    ),
-                    hintStyle: TextStyle(
-                      color: cs.onSurface.withAlpha(120),
-                      fontSize: 14,
-                    ),
-                  ),
+                child: SketchpadTargetGlyphButton(
+                  currentLabel: state.target,
+                  onSelected: onTargetChanged,
                 ),
               ),
               const SizedBox(width: 8),
-              _PillButton(
-                label: 'Clear',
-                enabled: hasStrokes,
-                onTap: onClear,
-              ),
+              _PillButton(label: 'Clear', enabled: hasStrokes, onTap: onClear),
               const SizedBox(width: 8),
               _PillButton(
                 label: state.aiBusy ? 'Working...' : 'Get Feedback',
@@ -425,10 +372,7 @@ MarkdownStyleSheet _feedbackMarkdownStyle(ColorScheme cs) {
     strong: base.copyWith(fontWeight: FontWeight.w700),
     em: base.copyWith(fontStyle: FontStyle.italic),
     listBullet: base,
-    a: base.copyWith(
-      color: cs.primary,
-      decoration: TextDecoration.underline,
-    ),
+    a: base.copyWith(color: cs.primary, decoration: TextDecoration.underline),
     code: base.copyWith(
       fontFamily: 'monospace',
       fontSize: 12.5,
@@ -463,13 +407,14 @@ class _ThinkingDotsState extends State<_ThinkingDots>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    )..addListener(() {
-        final int next = (_ctrl.value * 3).floor() + 1;
-        if (next != _dotCount) setState(() => _dotCount = next);
-      });
+    _ctrl =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 500),
+        )..addListener(() {
+          final int next = (_ctrl.value * 3).floor() + 1;
+          if (next != _dotCount) setState(() => _dotCount = next);
+        });
     _ctrl.repeat();
   }
 

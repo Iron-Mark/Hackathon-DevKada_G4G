@@ -81,6 +81,13 @@ class _ScanTabState extends ConsumerState<ScanTab> {
     _revealStatusChip();
   }
 
+  bool _shouldCenterWebStatusChip() {
+    return kIsWeb &&
+        (_webStatus == WebScannerStatus.initializing ||
+            _webStatus == WebScannerStatus.permissionNeeded ||
+            _webStatus == WebScannerStatus.error);
+  }
+
   void _revealStatusChip() {
     _statusFadeTimer?.cancel();
     if (mounted) {
@@ -203,11 +210,11 @@ class _ScanTabState extends ConsumerState<ScanTab> {
     return () => controller.captureWebFrame(capture);
   }
 
-  /// Captures the current live camera frame via [RepaintBoundary], triggers a
-  /// brief white-flash animation, then freezes the scan with [onShutterTapped].
+  /// Captures the current live camera frame, triggers a brief white-flash
+  /// animation, then runs still-image inference on that exact frame.
   ///
-  /// Falls back gracefully — if the capture fails the result panel still shows
-  /// with the live detection snapshot (no frozen image).
+  /// Falls back gracefully with a scanner notice if the native frame is not
+  /// ready, instead of reusing the previous live detection snapshot.
   Future<void> _captureAndShutter() async {
     final ScanTabController controller = ref.read(
       scanTabControllerProvider.notifier,
@@ -238,7 +245,7 @@ class _ScanTabState extends ConsumerState<ScanTab> {
       debugPrint('[ScanTab] frame capture failed: $e');
     }
 
-    controller.onShutterTapped(capturedBytes: capturedBytes);
+    await controller.captureNativeFrame(fallbackBytes: capturedBytes);
   }
 
   @override
@@ -348,6 +355,7 @@ class _ScanTabState extends ConsumerState<ScanTab> {
               ),
             Positioned(
               top: 0,
+              left: _shouldCenterWebStatusChip() ? sideGutter : null,
               right: sideGutter,
               child: SafeArea(
                 bottom: false,
@@ -359,11 +367,19 @@ class _ScanTabState extends ConsumerState<ScanTab> {
                       opacity: _showStatusChip ? 1 : 0,
                       duration: const Duration(milliseconds: 450),
                       curve: Curves.easeOutCubic,
-                      child: _ScanStatusChip(
-                        key: const ValueKey('scan-status-chip'),
-                        label: statusLabel,
-                        icon: statusIcon,
-                      ),
+                      child: _shouldCenterWebStatusChip()
+                          ? Center(
+                              child: _ScanStatusChip(
+                                key: const ValueKey('scan-status-chip'),
+                                label: statusLabel,
+                                icon: statusIcon,
+                              ),
+                            )
+                          : _ScanStatusChip(
+                              key: const ValueKey('scan-status-chip'),
+                              label: statusLabel,
+                              icon: statusIcon,
+                            ),
                     ),
                   ),
                 ),
@@ -388,8 +404,8 @@ class _ScanTabState extends ConsumerState<ScanTab> {
               bottom: controlsBottom,
               child: _ScanControls(
                 key: const ValueKey('scan-controls'),
-                frozen: scanState.isShutterFrozen,
-                onShutter: scanState.isShutterFrozen
+                frozen: isFrozen,
+                onShutter: isFrozen
                     // Retake: dismiss frozen frame and go back to live camera.
                     ? controller.dismissResult
                     : kIsWeb
@@ -397,7 +413,7 @@ class _ScanTabState extends ConsumerState<ScanTab> {
                           ? null
                           : () => controller.captureWebFrame(_webCapture!))
                     : (scanState.isLoadingImage ? null : _captureAndShutter),
-                shutterLabel: scanState.isShutterFrozen
+                shutterLabel: isFrozen
                     ? 'Retake'
                     : kIsWeb
                     ? 'Capture Webcam Frame'
@@ -540,6 +556,7 @@ class _ScanCameraStack extends StatelessWidget {
   final ValueChanged<WebScannerSwitchCamera?>? onWebSwitchCameraChanged;
   final ValueChanged<WebScannerStatus>? onWebStatusChanged;
   final Uint8List? selectedImageBytes;
+  final void Function(List<String> permutations) onPermutationsTap;
 
   /// Frozen camera frame from a shutter press. Takes priority over live camera.
   final Uint8List? capturedFrameBytes;
@@ -547,8 +564,6 @@ class _ScanCameraStack extends StatelessWidget {
   /// Key on the [RepaintBoundary] that wraps the live [ScannerCamera].
   /// Used by the parent to capture the frame just before freezing.
   final GlobalKey cameraRepaintKey;
-
-  final void Function(List<String> permutations) onPermutationsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -622,7 +637,7 @@ class _ScanControls extends StatelessWidget {
               child: frozen
                   ? _ControlIcon(
                       icon: Icons.replay_rounded,
-                      label: 'Retake',
+                      label: 'Close preview',
                       onTap: onShutter,
                       size: compact ? 48 : 54,
                       small: tiny,

@@ -34,17 +34,21 @@ class LearningProgressScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final Map<String, LessonProgress> progressMap =
         ref.watch(lessonProgressNotifierProvider).value ??
-            <String, LessonProgress>{};
+        <String, LessonProgress>{};
 
-    final int completed =
-        progressMap.values.where((LessonProgress p) => p.completed).length;
+    final int completed = progressMap.values
+        .where((LessonProgress p) => p.completed)
+        .length;
     final int total = _lessonOrder.length;
 
     // Find the next lesson to work on
-    final String? nextLessonId = _lessonOrder.firstWhere(
-      (String id) => progressMap[id]?.status != LessonStatus.completed,
-      orElse: () => '',
-    ).isEmpty
+    final String? nextLessonId =
+        _lessonOrder
+            .firstWhere(
+              (String id) => progressMap[id]?.status != LessonStatus.completed,
+              orElse: () => '',
+            )
+            .isEmpty
         ? null
         : _lessonOrder.firstWhere(
             (String id) => progressMap[id]?.status != LessonStatus.completed,
@@ -62,14 +66,15 @@ class LearningProgressScreen extends ConsumerWidget {
                 _OverallRingCard(completed: completed, total: total),
                 const SizedBox(height: 20),
                 ..._lessonOrder.asMap().entries.map(
-                      (MapEntry<int, String> e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _LessonTile(
-                          index: e.key,
-                          lessonId: e.value,
-                          lessonName: _lessonNames[e.value] ?? e.value,
-                          progress: progressMap[e.value],
-                        )
+                  (MapEntry<int, String> e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child:
+                        _LessonTile(
+                              index: e.key,
+                              lessonId: e.value,
+                              lessonName: _lessonNames[e.value] ?? e.value,
+                              progress: progressMap[e.value],
+                            )
                             .animate(delay: (e.key * 60).ms)
                             .fadeIn(duration: 280.ms)
                             .slideX(
@@ -78,8 +83,8 @@ class LearningProgressScreen extends ConsumerWidget {
                               duration: 280.ms,
                               curve: Curves.easeOutCubic,
                             ),
-                      ),
-                    ),
+                  ),
+                ),
                 if (nextLessonId != null) ...<Widget>[
                   const SizedBox(height: 8),
                   _ButtyCtaCard(lessonId: nextLessonId)
@@ -112,9 +117,13 @@ class _HeroAppBar extends StatelessWidget {
   final int total;
 
   String get _message {
-    if (completed == 0) return 'Simulan na natin!\nStart your Baybayin journey.';
+    if (completed == 0) {
+      return 'Simulan na natin!\nStart your Baybayin journey.';
+    }
     if (completed == total) return 'Magaling ka!\nAll lessons complete!';
-    if (completed / total >= 0.5) return 'Halos tapos na!\nAlmost there, keep going!';
+    if (completed / total >= 0.5) {
+      return 'Halos tapos na!\nAlmost there, keep going!';
+    }
     return 'Magpatuloy lang!\nYou\'re making great progress.';
   }
 
@@ -205,19 +214,20 @@ class _HeroBanner extends StatelessWidget {
               Positioned(
                 right: -8,
                 bottom: -4,
-                child: Image.asset(
-                  'assets/brand/ButtyRead.webp',
-                  height: 140,
-                  fit: BoxFit.fitHeight,
-                )
-                    .animate(delay: 100.ms)
-                    .slideX(
-                      begin: 0.2,
-                      end: 0,
-                      duration: 400.ms,
-                      curve: Curves.easeOutCubic,
-                    )
-                    .fadeIn(duration: 300.ms),
+                child:
+                    Image.asset(
+                          'assets/brand/ButtyRead.webp',
+                          height: 140,
+                          fit: BoxFit.fitHeight,
+                        )
+                        .animate(delay: 100.ms)
+                        .slideX(
+                          begin: 0.2,
+                          end: 0,
+                          duration: 400.ms,
+                          curve: Curves.easeOutCubic,
+                        )
+                        .fadeIn(duration: 300.ms),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 56, 140, 26),
@@ -247,14 +257,14 @@ class _HeroBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      message,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        height: 1.4,
-                      ),
-                    )
+                          message,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.4,
+                          ),
+                        )
                         .animate(delay: 80.ms)
                         .fadeIn(duration: 300.ms)
                         .slideY(begin: 0.1, end: 0, duration: 300.ms),
@@ -278,17 +288,12 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    )
+          width: size,
+          height: size,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        )
         .animate(onPlay: (AnimationController c) => c.repeat(reverse: true))
-        .moveY(
-          begin: 0,
-          end: -8,
-          duration: 2000.ms,
-          curve: Curves.easeInOut,
-        );
+        .moveY(begin: 0, end: -8, duration: 2000.ms, curve: Curves.easeInOut);
   }
 }
 
@@ -334,63 +339,70 @@ class _OverallRingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      child: Row(
-        children: <Widget>[
-          _RingWidget(completed: completed, total: total, cs: cs),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  '$completed of $total lessons',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'completed',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: cs.onSurface.withAlpha(140),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween<double>(
-                      end: total == 0 ? 0 : completed / total,
-                    ),
-                    duration: const Duration(milliseconds: 700),
-                    curve: Curves.easeOutCubic,
-                    builder: (BuildContext context, double v, _) =>
-                        LinearProgressIndicator(
-                          value: v,
-                          minHeight: 7,
-                          backgroundColor: cs.surfaceContainerHigh,
-                          valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-                        ),
-                  ),
-                ),
-              ],
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: cs.outlineVariant),
           ),
-        ],
-      ),
-    )
+          child: Row(
+            children: <Widget>[
+              _RingWidget(completed: completed, total: total, cs: cs),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      '$completed of $total lessons',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'completed',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: cs.onSurface.withAlpha(140),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(
+                          end: total == 0 ? 0 : completed / total,
+                        ),
+                        duration: const Duration(milliseconds: 700),
+                        curve: Curves.easeOutCubic,
+                        builder: (BuildContext context, double v, _) =>
+                            LinearProgressIndicator(
+                              value: v,
+                              minHeight: 7,
+                              backgroundColor: cs.surfaceContainerHigh,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                cs.primary,
+                              ),
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        )
         .animate()
         .fadeIn(duration: 300.ms)
-        .slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOutCubic);
+        .slideY(
+          begin: 0.1,
+          end: 0,
+          duration: 300.ms,
+          curve: Curves.easeOutCubic,
+        );
   }
 }
 
@@ -418,9 +430,7 @@ class _RingWidget extends StatelessWidget {
         child: CustomPaint(
           painter: _RingPainter(
             fraction: value,
-            arcColor: completed == total
-                ? const Color(0xFF46B986)
-                : cs.primary,
+            arcColor: completed == total ? const Color(0xFF46B986) : cs.primary,
             trackColor: cs.surfaceContainerHighest,
           ),
           child: Center(
@@ -514,9 +524,10 @@ class _LessonTileState extends State<_LessonTile>
       duration: const Duration(milliseconds: 80),
       reverseDuration: const Duration(milliseconds: 180),
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _pressCtrl, curve: Curves.easeInOut),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeInOut));
   }
 
   @override

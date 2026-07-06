@@ -6,7 +6,6 @@ part of 'ai_inference_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-
 @ProviderFor(AiInferenceNotifier)
 final aiInferenceNotifierProvider =
     AsyncNotifierProvider<AiInferenceNotifier, AiInferenceState>.internal(

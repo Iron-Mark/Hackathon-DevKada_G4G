@@ -33,10 +33,7 @@ String _$scannerNotifierHash() => r'scannerNotifier';
 /// Copied from [ScannerNotifier].
 @ProviderFor(ScannerNotifier)
 final scannerNotifierProvider =
-    NotifierProvider<
-      ScannerNotifier,
-      List<BaybayinDetection>
-    >.internal(
+    NotifierProvider<ScannerNotifier, List<BaybayinDetection>>.internal(
       ScannerNotifier.new,
       name: r'scannerNotifierProvider',
       from: null,

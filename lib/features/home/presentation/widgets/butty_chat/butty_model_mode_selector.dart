@@ -55,8 +55,9 @@ class ButtyModelModeSelector extends ConsumerWidget {
     final String helperText = switch (offlineStatusAsync) {
       AsyncData(:final ButtyOfflineStatus value) =>
         value.detail ?? 'Offline status unknown.',
-      AsyncError() => 'Offline check failed. Use cloud or retry later.',
-      _ => 'Checking whether the offline Gemma model is installed…',
+      AsyncError() =>
+        'Offline check failed. Stay on internet mode or try again later.',
+      _ => 'Checking whether offline replies are ready…',
     };
 
     final Widget pills = Container(

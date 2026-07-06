@@ -106,19 +106,20 @@ class _HeroBanner extends StatelessWidget {
             Positioned(
               right: -10,
               bottom: -8,
-              child: Image.asset(
-                'assets/brand/ButtyTextBubble.webp',
-                height: 150,
-                fit: BoxFit.fitHeight,
-              )
-                  .animate(delay: 100.ms)
-                  .slideX(
-                    begin: 0.25,
-                    end: 0,
-                    duration: 420.ms,
-                    curve: Curves.easeOutCubic,
-                  )
-                  .fadeIn(duration: 320.ms),
+              child:
+                  Image.asset(
+                        'assets/brand/ButtyTextBubble.webp',
+                        height: 150,
+                        fit: BoxFit.fitHeight,
+                      )
+                      .animate(delay: 100.ms)
+                      .slideX(
+                        begin: 0.25,
+                        end: 0,
+                        duration: 420.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .fadeIn(duration: 320.ms),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 56, 150, 18),
@@ -147,18 +148,17 @@ class _HeroBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tara, ayusin natin!\nYour chats and what I remember about you.',
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onPrimary,
-                      height: 1.4,
-                    ),
-                  ).animate(delay: 80.ms).fadeIn(duration: 300.ms).slideY(
-                        begin: 0.1,
-                        end: 0,
-                        duration: 300.ms,
-                      ),
+                        'Tara, ayusin natin!\nYour chats and what I remember about you.',
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onPrimary,
+                          height: 1.4,
+                        ),
+                      )
+                      .animate(delay: 80.ms)
+                      .fadeIn(duration: 300.ms)
+                      .slideY(begin: 0.1, end: 0, duration: 300.ms),
                 ],
               ),
             ),
@@ -575,10 +575,7 @@ MarkdownStyleSheet _markdownStyle(BuildContext context, TextStyle base) {
     strong: base.copyWith(fontWeight: FontWeight.w700),
     em: base.copyWith(fontStyle: FontStyle.italic),
     listBullet: base,
-    a: base.copyWith(
-      color: cs.primary,
-      decoration: TextDecoration.underline,
-    ),
+    a: base.copyWith(color: cs.primary, decoration: TextDecoration.underline),
     code: base.copyWith(
       fontFamily: 'monospace',
       fontSize: 13,
@@ -638,14 +635,16 @@ class _MemorySection extends ConsumerWidget {
     );
     if (draft == null) return;
     final DateTime now = DateTime.now();
-    await ref.read(chatMemoryNotifierProvider.notifier).addFacts(<ChatMemoryFact>[
-      ChatMemoryFact(
-        factType: draft.factType,
-        content: draft.content,
-        createdAt: now,
-        lastReferencedAt: now,
-      ),
-    ]);
+    await ref
+        .read(chatMemoryNotifierProvider.notifier)
+        .addFacts(<ChatMemoryFact>[
+          ChatMemoryFact(
+            factType: draft.factType,
+            content: draft.content,
+            createdAt: now,
+            lastReferencedAt: now,
+          ),
+        ]);
   }
 }
 
@@ -711,15 +710,14 @@ class _MemoryBody extends ConsumerWidget {
     }
     final _MemoryFactDraft? draft = result.draft;
     if (draft == null) return;
-    await ref.read(chatMemoryNotifierProvider.notifier).updateFact(
+    await ref
+        .read(chatMemoryNotifierProvider.notifier)
+        .updateFact(
           f.copyWith(factType: draft.factType, content: draft.content),
         );
   }
 
-  Future<void> _confirmClearMemory(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _confirmClearMemory(BuildContext context, WidgetRef ref) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) {
@@ -833,9 +831,7 @@ class _MemoryFactDraft {
 
 class _EditFactResult {
   const _EditFactResult.update(this.draft) : delete = false;
-  const _EditFactResult.delete()
-      : draft = null,
-        delete = true;
+  const _EditFactResult.delete() : draft = null, delete = true;
   final _MemoryFactDraft? draft;
   final bool delete;
 }
@@ -886,10 +882,8 @@ class _EditFactDialogState extends State<_EditFactDialog> {
               ),
               items: _memoryTypes
                   .map(
-                    (String t) => DropdownMenuItem<String>(
-                      value: t,
-                      child: Text(t),
-                    ),
+                    (String t) =>
+                        DropdownMenuItem<String>(value: t, child: Text(t)),
                   )
                   .toList(growable: false),
               onChanged: (String? v) {
@@ -993,9 +987,7 @@ class _SectionCard extends StatelessWidget {
                   color: cs.primaryContainer,
                   shape: BoxShape.circle,
                 ),
-                child: ClipOval(
-                  child: Image.asset(mascot, fit: BoxFit.cover),
-                ),
+                child: ClipOval(child: Image.asset(mascot, fit: BoxFit.cover)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1026,10 +1018,7 @@ class _SectionCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.only(right: 6), child: child),
         ],
       ),
     );
@@ -1114,10 +1103,7 @@ class _ErrorBlock extends StatelessWidget {
     final ColorScheme cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        message,
-        style: TextStyle(color: cs.error, fontSize: 12.5),
-      ),
+      child: Text(message, style: TextStyle(color: cs.error, fontSize: 12.5)),
     );
   }
 }
