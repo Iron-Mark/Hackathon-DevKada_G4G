@@ -5,7 +5,7 @@
 Kudlit — Flutter app for Baybayin scanning (YOLO/TFLite), translation (Gemma),
 and lessons. On `main` (synced with `origin/main`; working tree clean apart
 from this uncommitted AGENTS.md refresh). `dev` is one commit behind `main`.
-Full coding standard, architecture, and commit rules: [CLAUDE.md](CLAUDE.md).
+Full coding standard, architecture, and commit rules: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). `CLAUDE.md` is a compatibility pointer only.
 
 ## Environment / Stack
 
@@ -70,4 +70,4 @@ Feature structure: `domain/` (pure Dart) → `data/` → `presentation/` (widget
 - v1.0.0 Android APK published on GitHub Releases (`ACSADians/kudlit-app`).
 - Repo rule: branch off `dev` (never `main`); conventional-commit prefixes.
 
-Last verified: 2026-07-22 (workspace AGENTS.md refresh pass).
+Last verified: 2026-08-04 (assistant-independent guidance refresh).

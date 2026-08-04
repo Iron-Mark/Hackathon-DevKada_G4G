@@ -38,7 +38,7 @@ into an implementation plan for the next version of the
 `Translate` experience.
 
 It is written to follow the architecture rules in
-[CLAUDE.md](../CLAUDE.md):
+[DEVELOPMENT.md](DEVELOPMENT.md):
 
 - feature-first clean architecture
 - Riverpod-driven state
@@ -255,7 +255,7 @@ Recommended provider split:
 - one provider for translate-page Gemma readiness
 - one provider/notifier for AI explanation requests
 
-This keeps widget builds small and follows `CLAUDE.md` guidance against
+This keeps widget builds small and follows `DEVELOPMENT.md` guidance against
 logic-heavy widgets.
 
 ## Text Mode Plan

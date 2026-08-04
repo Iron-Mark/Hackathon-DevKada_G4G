@@ -10,7 +10,8 @@ Use this repo as a Flutter implementation of the bundled `Kudlit Design System`.
 
 ## Source of Truth
 
-- Product rules and architecture: [CLAUDE.md](CLAUDE.md)
+- Product rules and architecture: [AGENTS.md](AGENTS.md) and
+  [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - Brand rules and visual references: [Kudlit Design System/README.md](<Kudlit Design System/README.md>)
 - Design-system skill manifest: [Kudlit Design System/SKILL.md](<Kudlit Design System/SKILL.md>)
 - Gemini extension entrypoint: [GEMINI.md](GEMINI.md)

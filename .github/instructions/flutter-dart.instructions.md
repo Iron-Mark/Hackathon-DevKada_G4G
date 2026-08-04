@@ -4,7 +4,7 @@ applyTo: "lib/**/*.dart"
 ---
 # Dart / Flutter Coding Rules
 
-Full rules: [CLAUDE.md](../../CLAUDE.md). Key constraints enforced here:
+Full rules: [docs/DEVELOPMENT.md](../../docs/DEVELOPMENT.md). Key constraints enforced here:
 
 ## Types & Variables
 - Never use `var` — always declare explicit types.

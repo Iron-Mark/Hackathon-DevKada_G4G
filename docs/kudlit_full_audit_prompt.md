@@ -30,7 +30,7 @@ No filler. No balance-padding. Every claim cites `file_path:line`. You are writi
 
 Stack: Flutter · Riverpod (`@riverpod` codegen) · GoRouter · Supabase (auth + sync) · SQLite + Hive (offline cache) · `ultralytics_yolo` + TFLite · `flutter_gemma`.
 
-Conventions live in `CLAUDE.md` at the repo root — **respect them**. Flag deviations explicitly rather than rewriting style.
+Conventions live in root `AGENTS.md` and `docs/DEVELOPMENT.md` — **respect them**. Flag deviations explicitly rather than rewriting style.
 
 ---
 
@@ -124,7 +124,7 @@ Each lane is owned by exactly one subagent. The subagent's prompt is the **Chart
 ### Lane 3 — Architecture & code quality
 - **Output file:** `docs/audit/<DATE>/03_architecture.md`
 - **Skill:** `review` (plus `simplify` if available)
-- **Scope:** Clean Architecture boundaries, Riverpod conventions, widget rules from `CLAUDE.md`.
+- **Scope:** Clean Architecture boundaries, Riverpod conventions, and widget rules from `docs/DEVELOPMENT.md`.
 - **Charter:**
   > You are the Architecture lane auditor. Invoke the `review` Skill once at the start. Verify (a) `domain/` has zero Flutter imports, (b) `presentation/` never imports concrete repositories, (c) every provider uses `@riverpod` codegen, (d) `build()` is ≤40 lines everywhere, (e) no `_buildSomething()` private builders are used to decompose UI, (f) widgets contain no business logic. List every violation with `file_path:line`. Note test coverage gaps per feature. Output to `docs/audit/<DATE>/03_architecture.md` per §7.B.
 
@@ -308,7 +308,7 @@ Each lane lists in its **Methods** footer which of these it reconciled against.
 
 1. **Read the actual code.** Never hallucinate paths, functions, or line numbers.
 2. **Cite everything.** Every con / improvement bullet ends with `file_path:line`. If no evidence, drop the claim.
-3. **Respect `CLAUDE.md`.** Flag deviations rather than recommending wholesale rewrites to a different style.
+3. **Respect `AGENTS.md` and `docs/DEVELOPMENT.md`.** Flag deviations rather than recommending wholesale rewrites to a different style.
 4. **No fabricated metrics.** No invented frame rates, bundle sizes, or memory numbers. Describe risk qualitatively when unmeasured.
 5. **No vague advice.** Every "improvement" names (a) the screen/symbol, (b) the observed behavior, (c) the concrete change.
 6. **No cross-talk between subagents.** Lead synchronizes; subagents don't call each other.
@@ -336,7 +336,7 @@ If a criterion cannot be satisfied for a legitimate reason (e.g., a screen file 
 
 ## 11. Begin
 
-Acknowledge in one line that you have read this prompt and `CLAUDE.md`. Then:
+Acknowledge in one line that you have read this prompt, `AGENTS.md`, and `docs/DEVELOPMENT.md`. Then:
 
 1. Run **Phase A** by spawning the **3 Explore subagents in a single message** (§4.1).
 2. After they return, run **Phase B** by spawning **all 7 lane auditors in a single message** (§4.2, §5).

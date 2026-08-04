@@ -262,4 +262,5 @@ Recommended usage:
 - Prefer relative imports within a feature and `package:kudlit_ph/...` across features.
 - Use single quotes and explicit types.
 
-For repo-level coding rules and architecture constraints, read [CLAUDE.md](CLAUDE.md).
+For repo-level coding rules and architecture constraints, read [AGENTS.md](AGENTS.md)
+and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).

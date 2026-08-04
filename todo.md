@@ -16,12 +16,13 @@ Current state: core scan-tab responsive / overlap / transition hardening updates
 
 ## P0 — Docs drift blockers (must fix)
 
-- [x] Update `CLAUDE.md`
+- [x] Update the canonical development guidance (now `docs/DEVELOPMENT.md`)
   - Replace web-platform statement in **Platform Notes**:
     - remove “Camera/TFLite features are unavailable on web”
     - document webcam-first web behavior with capture-based scanner flow and fallback paths
   - Keep design rules intact.
-  - **Acceptance:** no web scanner-availability mismatch remains in `CLAUDE.md`.
+  - **Acceptance:** no web scanner-availability mismatch remains in the
+    canonical development guide; `CLAUDE.md` is now only a compatibility pointer.
 
 - [x] Update `docs/system_audit.md`
   - Section **Scanner**:

@@ -11,7 +11,8 @@ This skill covers Flutter UI implementation for Kudlit. It complements `obra/sup
 
 ## Required Context
 
-- Follow `CLAUDE.md` for repo architecture and coding constraints.
+- Follow `AGENTS.md` and `docs/DEVELOPMENT.md` for repository architecture and
+  coding constraints.
 - Use the bundled `Kudlit Design System` as the visual source of truth.
 - Treat `lib/core/design_system/` as the shared Flutter translation layer for brand tokens and reusable surfaces.
 
