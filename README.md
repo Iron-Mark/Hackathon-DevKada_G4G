@@ -109,14 +109,17 @@ dart format lib/ test/
 The repository includes two web deployment paths:
 
 - `build.sh` for Cloudflare Pages. Configure the build command as `bash build.sh` and the output directory as `build/web`.
-- `.github/workflows/deploy-pages.yml` for GitHub Pages. It runs on pushes to `main` and can also be started manually from GitHub Actions.
+- `.github/workflows/deploy-pages.yml` for GitHub Pages. It runs on pushes to `main`, can also be started manually from GitHub Actions, and derives the project-site URL and base path from the current repository so forks deploy without hard-coded owner settings. A repository or organization administrator must first enable Pages with **GitHub Actions** as the source; the workflow token cannot enable Pages itself.
 
-Both deployment paths expect these repository or platform secrets:
+Both deployment paths expect these client configuration values as repository or platform secrets:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `GEMINI_API_KEY`
 - `HUGGINGFACE_TOKEN` is optional.
+
+`GEMINI_API_KEY` must remain server-side and be configured only for the
+`gemini-proxy` Supabase Edge Function. Never include it in the Flutter web
+build because `.env` is bundled into the published client assets.
 
 After a deployment is live, smoke-check the main web routes:
 

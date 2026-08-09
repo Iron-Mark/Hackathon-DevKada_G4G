@@ -17,20 +17,18 @@ if [[ "$APP_BASE_PATH" != /* || "$APP_BASE_PATH" != */ ]]; then
   exit 1
 fi
 
-if [ -n "${SUPABASE_URL:-}" ] || [ -n "${SUPABASE_ANON_KEY:-}" ] || [ -n "${GEMINI_API_KEY:-}" ] || [ -n "${HUGGINGFACE_TOKEN:-}" ]; then
+if [ -n "${SUPABASE_URL:-}" ] || [ -n "${SUPABASE_ANON_KEY:-}" ] || [ -n "${HUGGINGFACE_TOKEN:-}" ]; then
   # Write .env from CI environment variables so flutter_dotenv can load it.
-  # All variables must be set as secrets in the CI environment.
+  # Only client-safe values belong here because Flutter bundles this asset.
   cat > .env <<EOF
 SUPABASE_URL=${SUPABASE_URL}
 SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-GEMINI_API_KEY=${GEMINI_API_KEY}
 HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN:-}
 EOF
 elif [ ! -f .env ]; then
   cat > .env <<EOF
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
-GEMINI_API_KEY=
 HUGGINGFACE_TOKEN=
 EOF
 fi
