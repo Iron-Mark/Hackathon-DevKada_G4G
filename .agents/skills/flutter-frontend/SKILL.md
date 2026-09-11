@@ -44,7 +44,7 @@ This skill covers Flutter UI implementation for Kudlit. It complements `obra/sup
 - Use shared branded shells and placeholders from `lib/core/design_system/widgets/` when extending auth or top-level app surfaces.
 - Use assets from `assets/brand/` and the Baybayin display font from `assets/fonts/`.
 - Keep the visual language aligned with Kudlit: blue-tinted paper surfaces, dark denim ink, card-first layout, and Butty illustrations for expressive empty or helper states.
-- Treat `Kudlit Design System/ui_kits/mobile/` as reference-only. Rebuild layouts in Flutter instead of copying web structure.
+- Treat `kudlit-design-system/ui_kits/mobile/` as reference-only. Rebuild layouts in Flutter instead of copying web structure.
 
 ## Folder Placement
 

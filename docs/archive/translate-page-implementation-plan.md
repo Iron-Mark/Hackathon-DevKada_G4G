@@ -38,7 +38,7 @@ into an implementation plan for the next version of the
 `Translate` experience.
 
 It is written to follow the architecture rules in
-[CLAUDE.md](../CLAUDE.md):
+[CLAUDE.md](../../CLAUDE.md):
 
 - feature-first clean architecture
 - Riverpod-driven state
@@ -65,8 +65,8 @@ The page should also make Gemma runtime behavior explicit:
 
 This plan covers:
 
-- [translate_screen.dart](../lib/features/home/presentation/screens/translate_screen.dart)
-- [lib/features/home/presentation/widgets/translate/](../lib/features/home/presentation/widgets/translate/)
+- [translate_screen.dart](../../lib/features/home/presentation/screens/translate_screen.dart)
+- [lib/features/home/presentation/widgets/translate/](../../lib/features/home/presentation/widgets/translate/)
 - translator AI integration used by the page
 - local/offline Gemma readiness behavior reused from Butty
 - user feedback states for typed and drawn input

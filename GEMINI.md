@@ -7,4 +7,4 @@ Workflow priority for this repository:
 3. `obra/superpowers` process skills for brainstorming, planning, debugging, TDD, and review
 4. Repo-local implementation skill below
 
-@./skills/flutter-frontend/SKILL.md
+@./.agents/skills/flutter-frontend/SKILL.md

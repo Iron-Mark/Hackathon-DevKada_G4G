@@ -60,8 +60,8 @@
 
 **Files:**
 - Read: `docs/design-improvement-evidence-pack.md`
-- Read: `Kudlit Design System/README.md`
-- Read: `Kudlit Design System/colors_and_type.css`
+- Read: `kudlit-design-system/README.md`
+- Read: `kudlit-design-system/colors_and_type.css`
 - Evidence: `test-results/ui-verify/`
 
 - [ ] **Step 1: Confirm branch and clean starting point**

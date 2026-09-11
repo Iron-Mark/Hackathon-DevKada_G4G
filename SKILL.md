@@ -11,16 +11,16 @@ Use this repo as a Flutter implementation of the bundled `Kudlit Design System`.
 ## Source of Truth
 
 - Product rules and architecture: [CLAUDE.md](CLAUDE.md)
-- Brand rules and visual references: [Kudlit Design System/README.md](<Kudlit Design System/README.md>)
-- Design-system skill manifest: [Kudlit Design System/SKILL.md](<Kudlit Design System/SKILL.md>)
+- Brand rules and visual references: [kudlit-design-system/README.md](kudlit-design-system/README.md)
+- Design-system skill manifest: [kudlit-design-system/SKILL.md](kudlit-design-system/SKILL.md)
 - Gemini extension entrypoint: [GEMINI.md](GEMINI.md)
-- Repo-local Gemini skill: [skills/flutter-frontend/SKILL.md](skills/flutter-frontend/SKILL.md)
+- Repo-local frontend skill (shared source of truth for all agents): [.agents/skills/flutter-frontend/SKILL.md](.agents/skills/flutter-frontend/SKILL.md)
 
 ## Project Expectations
 
 - Keep the app mobile-first even when validating on Chrome.
 - Treat `lib/core/design_system/` as the app-facing translation layer for colors, type, spacing, assets, and shared shells.
-- Use the copied Flutter assets in `assets/brand/` and `assets/fonts/` instead of referencing files directly from `Kudlit Design System/`.
+- Use the copied Flutter assets in `assets/brand/` and `assets/fonts/` instead of referencing files directly from `kudlit-design-system/`.
 - Preserve feature-first clean architecture under `lib/features/`.
 - Use the current home/auth screens as branded placeholders until scanner, translator, and learn flows are implemented.
 
@@ -39,7 +39,7 @@ lib/
 assets/
   brand/                Copied Kudlit illustrations and UI imagery
   fonts/                Bundled Baybayin display font
-Kudlit Design System/   Reference kit, previews, and original brand docs
+kudlit-design-system/   Reference kit, previews, and original brand docs
 ```
 
 ## Implementation Notes

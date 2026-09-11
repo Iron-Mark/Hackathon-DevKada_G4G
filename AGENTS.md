@@ -61,9 +61,10 @@ Feature structure: `domain/` (pure Dart) → `data/` → `presentation/` (widget
 
 ## Skills (load before working in these domains)
 
-- `skills/flutter-frontend/SKILL.md` — widget patterns, design system
-- `skills/supabase/SKILL.md` — Supabase integration patterns
-- `skills/supabase-postgres-best-practices/SKILL.md` — schema/query optimisation
+- `.agents/skills/flutter-frontend/SKILL.md` — widget patterns, design system
+- `.agents/skills/supabase/SKILL.md` — Supabase integration patterns
+- `.agents/skills/supabase-postgres-best-practices/SKILL.md` — schema/query optimisation
+- `.agents/skills/ui-ux-promax/SKILL.md` — UI/UX design pass
 
 ## Current status
 

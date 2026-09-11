@@ -12,7 +12,7 @@ Use this when validating web scanner camera permission transitions.
 
 - Start app on `http://127.0.0.1:5173`.
 - From repo root:
-- `cd "tmp-playwright"`
+- `cd "test/e2e-playwright"`
 - `npm install`
 
 ### Recommended quick check
@@ -35,13 +35,13 @@ Manual scripted mobile capture (including blocked/prompt/granted states):
 
 Pass criteria:
 - Playwright regression passes and writes:
-  - `tmp-playwright/qa-artifact/camera-permission-state/transition-regression/camera-permission-transition-regression.json`
+  - `test/e2e-playwright/qa-artifact/camera-permission-state/transition-regression/camera-permission-transition-regression.json`
 - Mobile regression writes expected 390x844 screenshot names:
   - `camera-permission-denied-camera-state-390x844.png`
   - `camera-permission-granted-camera-state-390x844.png`
   - `camera-permission-transition-before-grant-390x844.png`
   - `camera-permission-transition-after-grant-390x844.png`
 - Manual flow writes expected artifacts under:
-  - `tmp-playwright/qa-artifact/manual-camera-flow/`
+  - `test/e2e-playwright/qa-artifact/manual-camera-flow/`
 - Final command prints:
   - `[PASS] camera permission e2e sweep completed`

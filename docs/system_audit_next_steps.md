@@ -39,9 +39,8 @@ Remaining work:
 - Replace boolean auth result values with explicit status enums where the code
   still needs clearer state.
 
-Reference doc:
-
-- [jam_the_dev_review_notes.md](jam_the_dev_review_notes.md)
+These two items originated from `@JamTheDev`'s PR review (2026-04-23); that
+review doc has since been removed as superseded by this backlog entry.
 
 ## Strategic Backlog
 
@@ -61,8 +60,8 @@ Remaining work:
 
 Reference docs:
 
-- [profile_management_feature_plan.md](profile_management_feature_plan.md)
-- [PR_PROFILE_MANAGEMENT_E2E.md](PR_PROFILE_MANAGEMENT_E2E.md)
+- [profile_management_feature_plan.md](archive/2026-05-sprint/profile_management_feature_plan.md)
+- [PR_PROFILE_MANAGEMENT_E2E.md](archive/2026-05-sprint/PR_PROFILE_MANAGEMENT_E2E.md)
 
 ### Scanner and Translator Native Capability Backlog
 
@@ -74,9 +73,9 @@ in dedicated audit docs.
 
 Remaining work:
 
-- Close the active items in [scanner_vision_model_audit.md](scanner_vision_model_audit.md).
+- Close the active items in [scanner_vision_model_audit.md](archive/2026-05-sprint/scanner_vision_model_audit.md).
 - Keep Gemma/offline model-loading work tracked in
-  [gemma_offline_model_loading_audit.md](gemma_offline_model_loading_audit.md).
+  [gemma_offline_model_loading_audit.md](archive/2026-05-sprint/gemma_offline_model_loading_audit.md).
 - Keep scanner history and translator bookmark persistence aligned with profile
   and Supabase sync decisions.
 

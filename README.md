@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/ACSADians/kudlit-app/releases/tag/v1.0.0"><strong>Download Android v1.0.0</strong></a>
   ·
-  <a href="Kudlit%20Design%20System/README.md">Design System</a>
+  <a href="kudlit-design-system/README.md">Design System</a>
   ·
   <a href="docs/system_audit.md">System Audit</a>
 </p>
@@ -73,7 +73,7 @@ The current public Android package is available from the GitHub Release:
 - App shell and auth flow use a shared Flutter design-system layer under `lib/core/design_system/`.
 - The bundled Baybayin display font and reference assets are copied into `assets/fonts/` and `assets/brand/` for normal Flutter usage.
 - The home shell, scanner, translator, learning, profile, and settings surfaces are active Flutter feature slices using the shared Kudlit visual system.
-- The original design-system source remains in [`Kudlit Design System/`](<Kudlit Design System/>) for previews, reference JSX, and asset provenance.
+- The original design-system source remains in [`kudlit-design-system/`](kudlit-design-system/) for previews, reference JSX, and asset provenance.
 
 ## Tech Stack
 
@@ -207,7 +207,7 @@ assets/
 ├── brand/                      Copied Kudlit illustrations and reference art
 └── fonts/                      Baybayin display font used in the UI
 
-Kudlit Design System/           Reference docs, CSS tokens, previews, JSX UI kit
+kudlit-design-system/           Reference docs, CSS tokens, previews, JSX UI kit
 ```
 
 ## Architecture
@@ -228,11 +228,11 @@ Current feature intent:
 
 ## Design System Notes
 
-- Token source: [`Kudlit Design System/colors_and_type.css`](<Kudlit Design System/colors_and_type.css>)
-- Brand guidance: [`Kudlit Design System/README.md`](<Kudlit Design System/README.md>)
+- Token source: [`kudlit-design-system/colors_and_type.css`](kudlit-design-system/colors_and_type.css)
+- Brand guidance: [`kudlit-design-system/README.md`](kudlit-design-system/README.md)
 - Local repo workflow notes: [SKILL.md](SKILL.md)
 - Gemini CLI entrypoint: [GEMINI.md](GEMINI.md)
-- Repo-local Gemini frontend skill: [skills/flutter-frontend/SKILL.md](skills/flutter-frontend/SKILL.md)
+- Repo-local frontend skill (shared source of truth for all agents): [.agents/skills/flutter-frontend/SKILL.md](.agents/skills/flutter-frontend/SKILL.md)
 
 Important limitation:
 
@@ -250,7 +250,7 @@ This repository also includes a local Gemini extension:
 
 - [gemini-extension.json](gemini-extension.json)
 - [GEMINI.md](GEMINI.md)
-- [skills/flutter-frontend/SKILL.md](skills/flutter-frontend/SKILL.md)
+- [.agents/skills/flutter-frontend/SKILL.md](.agents/skills/flutter-frontend/SKILL.md)
 
 Recommended usage:
 
