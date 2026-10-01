@@ -1169,7 +1169,7 @@ packages:
     source: hosted
     version: "0.28.0"
   schemantic:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       name: schemantic
       sha256: e783cb9b256dd5d9178fc0b04556f5b745a404a16ddcdddeb4143b168a2c80d1

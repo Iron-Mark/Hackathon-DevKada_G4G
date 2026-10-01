@@ -34,7 +34,7 @@ EOF
 fi
 
 flutter config --enable-web
-flutter pub get
+flutter pub get --enforce-lockfile
 export MSYS_NO_PATHCONV=1
 flutter build web --release --base-href "$APP_BASE_PATH"
 

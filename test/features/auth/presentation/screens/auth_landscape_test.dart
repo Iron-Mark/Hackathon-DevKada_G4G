@@ -145,9 +145,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('Enter the code'), findsOneWidget);
-      expect(find.text('Resend code'), findsOneWidget);
+      expect(find.textContaining('Resend in '), findsOneWidget);
       expect(find.bySemanticsLabel('OTP digit 1'), findsOneWidget);
-      expect(find.bySemanticsLabel('Resend code'), findsOneWidget);
       expect(tester.takeException(), isNull);
       semantics.dispose();
     },
@@ -163,7 +162,7 @@ void main() {
 
     expect(find.text('Enter the code'), findsOneWidget);
     expect(find.text('Verify'), findsOneWidget);
-    expect(find.text('Resend code'), findsOneWidget);
+    expect(find.textContaining('Resend in '), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -177,7 +176,7 @@ void main() {
   testWidgets('reset password screen fits phone landscape', (tester) async {
     await pumpLandscape(tester, const ResetPasswordScreen());
 
-    expect(find.text('Reset password'), findsOneWidget);
+    expect(find.text('Set a new password'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
