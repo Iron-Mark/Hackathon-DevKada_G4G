@@ -212,24 +212,51 @@ class _BottomBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: SketchpadTargetGlyphButton(
-                  currentLabel: state.target,
-                  onSelected: onTargetChanged,
-                ),
-              ),
-              const SizedBox(width: 8),
-              _PillButton(label: 'Clear', enabled: hasStrokes, onTap: onClear),
-              const SizedBox(width: 8),
-              _PillButton(
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final Widget targetPicker = SketchpadTargetGlyphButton(
+                currentLabel: state.target,
+                onSelected: onTargetChanged,
+              );
+              final Widget clearButton = _PillButton(
+                label: 'Clear',
+                enabled: hasStrokes,
+                onTap: onClear,
+              );
+              final Widget feedbackButton = _PillButton(
                 label: state.aiBusy ? 'Working...' : 'Get Feedback',
                 enabled: canRequest,
                 primary: true,
                 onTap: onGetFeedback,
-              ),
-            ],
+              );
+
+              if (constraints.maxWidth < 400) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    targetPicker,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: <Widget>[
+                        Expanded(child: clearButton),
+                        const SizedBox(width: 8),
+                        Expanded(child: feedbackButton),
+                      ],
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                children: <Widget>[
+                  Expanded(child: targetPicker),
+                  const SizedBox(width: 8),
+                  clearButton,
+                  const SizedBox(width: 8),
+                  feedbackButton,
+                ],
+              );
+            },
           ),
           if (disabledReason != null) ...<Widget>[
             const SizedBox(height: 6),

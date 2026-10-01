@@ -797,7 +797,7 @@ void main() {
       find.byKey(const ValueKey<String>('translate-filipino-input')),
       'Kumusta, 123!',
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('Used as: kumusta'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -806,7 +806,7 @@ void main() {
       find.byKey(const ValueKey<String>('translate-filipino-input')),
       'Kumusta',
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('Used as: kumusta'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -837,7 +837,7 @@ void main() {
       find.byKey(const ValueKey<String>('translate-encoded-baybayin-input')),
       'ᜊ',
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(
       find.text('Type encoded Baybayin like ka, ki, or k+...'),
@@ -880,48 +880,47 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'sketchpad target uses a tap picker with no keyboard surface',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(390, 844));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('sketchpad target uses a tap picker with no keyboard surface', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(home: Scaffold(body: TranslateScreen())),
-        ),
-      );
-      await tester.pump();
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: Scaffold(body: TranslateScreen())),
+      ),
+    );
+    await tester.pump();
 
-      await tester.tap(find.text('Sketchpad'));
-      await tester.pump();
+    await tester.tap(find.text('Sketchpad'));
+    await tester.pump();
 
-      // The keyboard-driven re-mount loop was rooted in the target
-      // TextField. The picker must not introduce any editable surface.
-      expect(find.byType(EditableText), findsNothing);
-      expect(find.byType(SketchpadTargetGlyphButton), findsOneWidget);
-      expect(find.text('Target glyph'), findsOneWidget);
+    // The keyboard-driven re-mount loop was rooted in the target
+    // TextField. The picker must not introduce any editable surface.
+    expect(find.byType(EditableText), findsNothing);
+    expect(find.byType(SketchpadTargetGlyphButton), findsOneWidget);
+    expect(find.text('Target glyph'), findsOneWidget);
 
-      await tester.tap(find.byType(SketchpadTargetGlyphButton));
-      await tester.pumpAndSettle();
-      expect(find.text('Choose target glyph'), findsOneWidget);
+    await tester.tap(find.byType(SketchpadTargetGlyphButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose target glyph'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(InkWell, 'ba').last);
-      await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(InkWell, 'ba').last);
+    await tester.pumpAndSettle();
 
-      expect(find.text('Choose target glyph'), findsNothing);
-      expect(find.byType(EditableText), findsNothing);
-      expect(
-        tester
-            .widget<SketchpadTargetGlyphButton>(
-              find.byType(SketchpadTargetGlyphButton),
-            )
-            .currentLabel,
-        'ba',
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.text('Choose target glyph'), findsNothing);
+    expect(find.byType(EditableText), findsNothing);
+    expect(
+      tester
+          .widget<SketchpadTargetGlyphButton>(
+            find.byType(SketchpadTargetGlyphButton),
+          )
+          .currentLabel,
+      'ba',
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Widget _largeTextBuilder(BuildContext context, Widget? child) {
