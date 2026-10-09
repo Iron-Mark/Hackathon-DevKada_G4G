@@ -33,14 +33,14 @@ class RouterListenable extends ChangeNotifier {
     // user opens the reset email, `gotrue` establishes a session and fires
     // `AuthChangeEvent.passwordRecovery` — we flip the gate so the router
     // forces navigation to the dedicated reset screen.
-    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen(
-      (AuthState event) {
-        if (event.event == AuthChangeEvent.passwordRecovery) {
-          _passwordRecoveryPending = true;
-          notifyListeners();
-        }
-      },
-    );
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((
+      AuthState event,
+    ) {
+      if (event.event == AuthChangeEvent.passwordRecovery) {
+        _passwordRecoveryPending = true;
+        notifyListeners();
+      }
+    });
   }
 
   final Ref _ref;

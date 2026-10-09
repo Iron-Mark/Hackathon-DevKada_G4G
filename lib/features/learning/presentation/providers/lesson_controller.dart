@@ -1,9 +1,7 @@
-// ignore: unnecessary_import — flutter_riverpod is needed for Ref resolution
 import 'dart:async';
 
 import 'package:flutter/painting.dart' show Offset;
 import 'package:flutter/foundation.dart' show Uint8List, debugPrint;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

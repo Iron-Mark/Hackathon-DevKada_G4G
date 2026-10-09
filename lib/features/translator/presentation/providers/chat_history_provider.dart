@@ -19,7 +19,7 @@ part 'chat_history_provider.g.dart';
 /// Mirrors the offline-first pattern used by [TranslationHistoryNotifier]:
 /// reads come from SQLite first, fall back to Supabase on cold-empty,
 /// writes are local-first with fire-and-forget cloud sync.
-@Riverpod(keepAlive: true)
+@Riverpod(keepAlive: true, name: 'chatHistoryNotifierProvider')
 class ChatHistoryNotifier extends _$ChatHistoryNotifier {
   late final SqliteChatDatasource _local;
   late final SupabaseChatDatasource _remote;

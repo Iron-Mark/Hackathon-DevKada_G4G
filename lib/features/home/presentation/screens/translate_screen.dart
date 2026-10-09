@@ -125,8 +125,7 @@ class _TranslateScreenState extends ConsumerState<TranslateScreen> {
           builder: (BuildContext context, BoxConstraints constraints) {
             final bool portraitKeyboardOpen =
                 keyboardOpen && screenSize.height >= screenSize.width;
-            final bool textMode =
-                pageState.mode == TranslateWorkspaceMode.text;
+            final bool textMode = pageState.mode == TranslateWorkspaceMode.text;
             // Eager (non-async) preserve: in portrait text mode the keyboard
             // can only be open because the text field is focused, so lock the
             // layout immediately instead of waiting for the focus-listener

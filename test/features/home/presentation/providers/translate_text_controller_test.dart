@@ -3,27 +3,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kudlit_ph/features/home/presentation/providers/translate_text_controller.dart';
 
 void main() {
-  test(
-    'setInput echoes raw text immediately without synchronous derive',
-    () {
-      final ProviderContainer container = ProviderContainer();
-      addTearDown(container.dispose);
+  test('setInput echoes raw text immediately without synchronous derive', () {
+    final ProviderContainer container = ProviderContainer();
+    addTearDown(container.dispose);
 
-      container
-          .read(translateTextControllerProvider.notifier)
-          .setInput('kamusta');
+    container
+        .read(translateTextControllerProvider.notifier)
+        .setInput('kamusta');
 
-      final TranslateTextState state = container.read(
-        translateTextControllerProvider,
-      );
-      expect(state.inputText, 'kamusta');
-      expect(state.hasInput, isTrue);
-      // Heavy transliteration is debounced off the typing hot path.
-      expect(state.baybayinText, isEmpty);
-      // Typing must never bump the revision (would reset the field/cursor).
-      expect(state.inputRevision, 0);
-    },
-  );
+    final TranslateTextState state = container.read(
+      translateTextControllerProvider,
+    );
+    expect(state.inputText, 'kamusta');
+    expect(state.hasInput, isTrue);
+    // Heavy transliteration is debounced off the typing hot path.
+    expect(state.baybayinText, isEmpty);
+    // Typing must never bump the revision (would reset the field/cursor).
+    expect(state.inputRevision, 0);
+  });
 
   test('setInput derives the preview after the debounce window', () async {
     final ProviderContainer container = ProviderContainer();

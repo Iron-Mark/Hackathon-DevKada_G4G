@@ -28,15 +28,12 @@ void main() {
       expect(failingYolo.loadCalls, 1);
       expect(failingYolo.disposeCalls, 1);
       expect(result.isLeft(), isTrue);
-      result.fold(
-        (Failure failure) {
-          expect(
-            scannerFailureKindOf(failure),
-            anyOf(ScannerFailureKind.init, ScannerFailureKind.inference),
-          );
-        },
-        (_) => fail('Expected a Left for a failed model load.'),
-      );
+      result.fold((Failure failure) {
+        expect(
+          scannerFailureKindOf(failure),
+          anyOf(ScannerFailureKind.init, ScannerFailureKind.inference),
+        );
+      }, (_) => fail('Expected a Left for a failed model load.'));
     },
   );
 }

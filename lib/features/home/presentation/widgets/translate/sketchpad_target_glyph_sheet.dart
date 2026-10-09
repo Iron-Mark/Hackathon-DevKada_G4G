@@ -75,8 +75,7 @@ class SketchpadTargetGlyphSheet extends StatelessWidget {
                         _TargetGlyphTile(
                           entry: entry,
                           selected: entry.label == currentLabel.trim(),
-                          onTap: () =>
-                              Navigator.of(context).pop(entry.label),
+                          onTap: () => Navigator.of(context).pop(entry.label),
                         ),
                     ],
                   ),

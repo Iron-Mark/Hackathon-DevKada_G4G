@@ -6,23 +6,50 @@ part of 'app_preferences_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$appPreferencesNotifierHash() =>
-    r'bbfaf946a018350986ec3bf452570460cd787710';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [AppPreferencesNotifier].
 @ProviderFor(AppPreferencesNotifier)
-final appPreferencesNotifierProvider =
-    AsyncNotifierProvider<AppPreferencesNotifier, AppPreferences>.internal(
-      AppPreferencesNotifier.new,
-      name: r'appPreferencesNotifierProvider',
-      from: null,
-      argument: null,
-      isAutoDispose: false,
-      dependencies: null,
-      $allTransitiveDependencies: null,
-      retry: null,
-    );
+final appPreferencesNotifierProvider = AppPreferencesNotifierProvider._();
 
-typedef _$AppPreferencesNotifier = AsyncNotifier<AppPreferences>;
-// ignore_for_file: type=lint
-// ignore_for_file: unused_element, subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class AppPreferencesNotifierProvider
+    extends $AsyncNotifierProvider<AppPreferencesNotifier, AppPreferences> {
+  AppPreferencesNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'appPreferencesNotifierProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$appPreferencesNotifierHash();
+
+  @$internal
+  @override
+  AppPreferencesNotifier create() => AppPreferencesNotifier();
+}
+
+String _$appPreferencesNotifierHash() =>
+    r'82d1d5426121b2f3b9571e2ba96c6ba342483a8d';
+
+abstract class _$AppPreferencesNotifier extends $AsyncNotifier<AppPreferences> {
+  FutureOr<AppPreferences> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<AppPreferences>, AppPreferences>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<AppPreferences>, AppPreferences>,
+              AsyncValue<AppPreferences>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

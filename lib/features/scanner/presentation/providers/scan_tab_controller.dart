@@ -145,26 +145,20 @@ class ScanTabController extends Notifier<ScanTabState> {
     final Either<Failure, Unit> result = await ref
         .read(baybayinDetectorProvider)
         .toggleTorch(enabled: next);
-    result.fold(
-      (Failure failure) {
-        debugPrint('[ScanTab] toggleTorch failed: ${_messageOf(failure)}');
-        // Revert the optimistic flash state so the UI doesn't lie about it.
-        state = state.copyWith(flashOn: !next);
-      },
-      (_) {},
-    );
+    result.fold((Failure failure) {
+      debugPrint('[ScanTab] toggleTorch failed: ${_messageOf(failure)}');
+      // Revert the optimistic flash state so the UI doesn't lie about it.
+      state = state.copyWith(flashOn: !next);
+    }, (_) {});
   }
 
   Future<void> switchCamera() async {
     final Either<Failure, Unit> result = await ref
         .read(baybayinDetectorProvider)
         .switchCamera();
-    result.fold(
-      (Failure failure) {
-        debugPrint('[ScanTab] switchCamera failed: ${_messageOf(failure)}');
-      },
-      (_) {},
-    );
+    result.fold((Failure failure) {
+      debugPrint('[ScanTab] switchCamera failed: ${_messageOf(failure)}');
+    }, (_) {});
   }
 
   Future<void> pickImageFromGallery() async {
@@ -194,15 +188,12 @@ class ScanTabController extends Notifier<ScanTabState> {
     final Either<Failure, Uint8List?> result = await ref
         .read(baybayinDetectorProvider)
         .captureFrame();
-    Uint8List? imageBytes = result.fold(
-      (Failure failure) {
-        debugPrint(
-          '[ScanTab] native camera frame capture failed: ${_messageOf(failure)}',
-        );
-        return null;
-      },
-      (Uint8List? bytes) => bytes,
-    );
+    Uint8List? imageBytes = result.fold((Failure failure) {
+      debugPrint(
+        '[ScanTab] native camera frame capture failed: ${_messageOf(failure)}',
+      );
+      return null;
+    }, (Uint8List? bytes) => bytes);
     imageBytes ??= fallbackBytes;
 
     if (imageBytes == null || imageBytes.isEmpty) {

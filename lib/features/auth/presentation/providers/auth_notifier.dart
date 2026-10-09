@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:fpdart/fpdart.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:kudlit_ph/core/error/failures.dart';
@@ -20,7 +19,7 @@ import 'package:kudlit_ph/features/auth/presentation/providers/auth_provider.dar
 
 part 'auth_notifier.g.dart';
 
-@Riverpod(keepAlive: true)
+@Riverpod(keepAlive: true, name: 'authNotifierProvider')
 class AuthNotifier extends _$AuthNotifier {
   @override
   Future<AuthUser?> build() {
