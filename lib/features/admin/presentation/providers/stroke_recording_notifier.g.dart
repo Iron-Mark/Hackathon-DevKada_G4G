@@ -6,23 +6,59 @@ part of 'stroke_recording_notifier.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$strokeRecordingNotifierHash() => r'stroke_recording_notifier_provider';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [StrokeRecordingNotifier].
 @ProviderFor(StrokeRecordingNotifier)
-final strokeRecordingNotifierProvider =
-    NotifierProvider<StrokeRecordingNotifier, StrokeRecordingState>.internal(
-      StrokeRecordingNotifier.new,
-      name: r'strokeRecordingNotifierProvider',
-      from: null,
-      argument: null,
-      isAutoDispose: true,
-      dependencies: null,
-      $allTransitiveDependencies: null,
-      retry: null,
+final strokeRecordingNotifierProvider = StrokeRecordingNotifierProvider._();
+
+final class StrokeRecordingNotifierProvider
+    extends $NotifierProvider<StrokeRecordingNotifier, StrokeRecordingState> {
+  StrokeRecordingNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'strokeRecordingNotifierProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$strokeRecordingNotifierHash();
+
+  @$internal
+  @override
+  StrokeRecordingNotifier create() => StrokeRecordingNotifier();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(StrokeRecordingState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<StrokeRecordingState>(value),
     );
+  }
+}
 
-typedef _$StrokeRecordingNotifier = Notifier<StrokeRecordingState>;
+String _$strokeRecordingNotifierHash() =>
+    r'805828988e47b49a2dd652a8ad204609c1e946db';
 
-// ignore_for_file: type=lint
-// ignore_for_file: unused_element, subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+abstract class _$StrokeRecordingNotifier
+    extends $Notifier<StrokeRecordingState> {
+  StrokeRecordingState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<StrokeRecordingState, StrokeRecordingState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<StrokeRecordingState, StrokeRecordingState>,
+              StrokeRecordingState,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

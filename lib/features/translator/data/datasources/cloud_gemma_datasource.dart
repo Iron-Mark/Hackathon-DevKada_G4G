@@ -357,9 +357,7 @@ class CloudGemmaDatasource implements AiDatasource {
 
     final int status = response.status;
     if (status < 200 || status >= 300) {
-      throw Exception(
-        'gemini-proxy returned $status: ${response.data}',
-      );
+      throw Exception('gemini-proxy returned $status: ${response.data}');
     }
 
     return _extractTextFromGeminiResponse(response.data);

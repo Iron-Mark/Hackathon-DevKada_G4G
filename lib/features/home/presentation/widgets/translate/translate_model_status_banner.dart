@@ -60,10 +60,7 @@ class _StatusContent extends ConsumerWidget {
     return switch (state) {
       AiReady(:final AiPreference mode) =>
         mode == AiPreference.cloud
-            ? TranslateModelStatusBanner._line(
-                cs,
-                'Online Gemma is active.',
-              )
+            ? TranslateModelStatusBanner._line(cs, 'Online Gemma is active.')
             : Row(
                 children: <Widget>[
                   Icon(
@@ -139,11 +136,7 @@ class _StatusContent extends ConsumerWidget {
                   onTap: () => ref
                       .read(aiInferenceNotifierProvider.notifier)
                       .cancelDownload(),
-                  child: Icon(
-                    Icons.cancel_rounded,
-                    size: 16,
-                    color: cs.error,
-                  ),
+                  child: Icon(Icons.cancel_rounded, size: 16, color: cs.error),
                 ),
               ],
             ),

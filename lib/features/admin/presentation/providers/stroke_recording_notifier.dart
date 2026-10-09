@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -13,7 +12,7 @@ import 'package:kudlit_ph/features/admin/presentation/providers/stroke_recording
 
 part 'stroke_recording_notifier.g.dart';
 
-@riverpod
+@Riverpod(name: 'strokeRecordingNotifierProvider')
 class StrokeRecordingNotifier extends _$StrokeRecordingNotifier {
   // Session-level values preserved across glyph changes and state transitions.
   Uint8List? _overlayBytes;

@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -66,7 +65,7 @@ SaveProfilePreferences saveProfilePreferencesUseCase(Ref ref) {
   return SaveProfilePreferences(ref.watch(profileManagementRepositoryProvider));
 }
 
-@riverpod
+@Riverpod(name: 'profileSummaryNotifierProvider')
 class ProfileSummaryNotifier extends _$ProfileSummaryNotifier {
   @override
   FutureOr<Option<ProfileSummary>> build() async {
@@ -167,7 +166,7 @@ String _failureMessage(Failure failure) {
   };
 }
 
-@riverpod
+@Riverpod(name: 'profilePreferencesNotifierProvider')
 class ProfilePreferencesNotifier extends _$ProfilePreferencesNotifier {
   @override
   FutureOr<Option<ProfilePreferences>> build() async {

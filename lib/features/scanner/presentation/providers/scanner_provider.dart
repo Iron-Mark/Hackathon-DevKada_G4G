@@ -59,7 +59,7 @@ final deviceInferenceCapableProvider = Provider<bool>((Ref ref) {
   return DeviceInferenceCapabilityChecker.instance.check();
 });
 
-@riverpod
+@Riverpod(name: 'scannerNotifierProvider')
 class ScannerNotifier extends _$ScannerNotifier {
   @override
   List<BaybayinDetection> build() => const <BaybayinDetection>[];

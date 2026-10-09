@@ -24,8 +24,7 @@ class WebBaybayinDetectorStub implements BaybayinDetector {
   @override
   Future<Either<Failure, List<BaybayinDetection>>> detectImage(
     Uint8List imageBytes,
-  ) async =>
-      right(const <BaybayinDetection>[]);
+  ) async => right(const <BaybayinDetection>[]);
 
   @override
   Future<Either<Failure, Uint8List?>> captureFrame() async => right(null);

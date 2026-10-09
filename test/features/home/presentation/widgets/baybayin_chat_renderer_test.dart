@@ -6,20 +6,15 @@ import 'package:kudlit_ph/features/home/presentation/widgets/butty_chat/baybayin
 const TextStyle _base = TextStyle(fontSize: 13.5, height: 1.5);
 
 Widget _wrap(Widget child) => MaterialApp(
-      home: Scaffold(
-        body: SizedBox(width: 300, child: child),
-      ),
-    );
+  home: Scaffold(body: SizedBox(width: 300, child: child)),
+);
 
 void main() {
   group('BaybayinChatRenderer — plain markdown', () {
     testWidgets('renders text without tags as markdown', (tester) async {
       await tester.pumpWidget(
         _wrap(
-          const BaybayinChatRenderer(
-            text: 'Hello **world**',
-            baseStyle: _base,
-          ),
+          const BaybayinChatRenderer(text: 'Hello **world**', baseStyle: _base),
         ),
       );
 
@@ -138,8 +133,7 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           const BaybayinChatRenderer(
-            text:
-                '<baybayin>mahal</baybayin> and <baybayin>salamat</baybayin>',
+            text: '<baybayin>mahal</baybayin> and <baybayin>salamat</baybayin>',
             baseStyle: _base,
           ),
         ),
@@ -194,10 +188,7 @@ void main() {
               w is Text && w.style?.fontFamily == 'Baybayin Simple TAWBID',
         ),
       );
-      expect(
-        baybayinText.style!.fontSize,
-        greaterThan(baseFontSize),
-      );
+      expect(baybayinText.style!.fontSize, greaterThan(baseFontSize));
     });
   });
 }

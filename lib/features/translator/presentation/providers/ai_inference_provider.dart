@@ -21,7 +21,7 @@ part 'ai_inference_provider.g.dart';
 /// Not instantiated until first read. Once read it stays alive
 /// (`keepAlive: true`) and routes to the correct backend
 /// (local `flutter_gemma` or cloud stub) based on `AiPreference`.
-@Riverpod(keepAlive: true)
+@Riverpod(keepAlive: true, name: 'aiInferenceNotifierProvider')
 class AiInferenceNotifier extends _$AiInferenceNotifier {
   static const Duration _stallThreshold = Duration(seconds: 20);
 

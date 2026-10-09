@@ -96,7 +96,7 @@ AiPreference _aiFromString(String? value) {
 
 // ─── Notifier ────────────────────────────────────────────────────────────────
 
-@Riverpod(keepAlive: true)
+@Riverpod(keepAlive: true, name: 'appPreferencesNotifierProvider')
 class AppPreferencesNotifier extends _$AppPreferencesNotifier {
   late final SharedPreferences _prefs;
 

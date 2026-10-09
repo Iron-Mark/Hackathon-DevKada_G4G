@@ -6,20 +6,49 @@ part of 'lesson_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
 @ProviderFor(LessonController)
-final lessonControllerProvider =
-    AsyncNotifierProvider<LessonController, LessonState?>.internal(
-      LessonController.new,
-      name: r'lessonControllerProvider',
-      from: null,
-      argument: null,
-      isAutoDispose: true,
-      dependencies: null,
-      $allTransitiveDependencies: null,
-      retry: null,
-    );
+final lessonControllerProvider = LessonControllerProvider._();
 
-typedef _$LessonController = AsyncNotifier<LessonState?>;
+final class LessonControllerProvider
+    extends $AsyncNotifierProvider<LessonController, LessonState?> {
+  LessonControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'lessonControllerProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
-// ignore_for_file: type=lint
-// ignore_for_file: unused_element, subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+  @override
+  String debugGetCreateSourceHash() => _$lessonControllerHash();
+
+  @$internal
+  @override
+  LessonController create() => LessonController();
+}
+
+String _$lessonControllerHash() => r'8bebb6eb5534251e297f2fa987b41ee95bcb60c7';
+
+abstract class _$LessonController extends $AsyncNotifier<LessonState?> {
+  FutureOr<LessonState?> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<LessonState?>, LessonState?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<LessonState?>, LessonState?>,
+              AsyncValue<LessonState?>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
