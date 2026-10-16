@@ -4,7 +4,7 @@ param(
   [string]$Url = 'http://127.0.0.1:5173',
   [string]$Widths = '768,1024,1366,1920',
   [int]$Height = 900,
-  [string]$Tabs = 'translate',
+  [object]$Tabs = @('translate'),
   [string]$OutputDir = 'test-results/ui-verify',
   [switch]$SkipTests
 )
@@ -48,24 +48,30 @@ function Parse-Widths {
 }
 
 function Parse-Tabs {
-  param([string]$RawTabs)
+  param($RawTabs)
 
-  $tabValues = $RawTabs -split '[,\s]+' | Where-Object { $_ }
+  $tabValues = if ($RawTabs -is [System.Collections.IEnumerable] -and $RawTabs -isnot [string]) {
+    $RawTabs
+  } else {
+    $RawTabs -split '[,\s]+' | Where-Object { $_ }
+  }
   $normalized = New-Object System.Collections.Generic.List[string]
   $seen = New-Object System.Collections.Generic.HashSet[string]
   foreach ($tab in $tabValues) {
-    $value = $tab.Trim().ToLowerInvariant()
-    if ($value -and -not $seen.Contains($value)) {
-      [void]$normalized.Add($value)
-      [void]$seen.Add($value)
+    if ($null -ne $tab) {
+      $value = $tab.ToString().Trim().ToLowerInvariant()
+      if ($value -and -not $seen.Contains($value)) {
+        [void]$normalized.Add($value)
+        [void]$seen.Add($value)
+      }
     }
   }
 
   if ($normalized.Count -eq 0) {
-    return @('translate')
+    return ,@('translate')
   }
 
-  return @($normalized)
+  return ,@($normalized.ToArray())
 }
 
 function Build-TabUrl {
@@ -98,7 +104,7 @@ function Get-Port {
 $root = Resolve-Path $PSScriptRoot/..
 $parsedWidths = Parse-Widths -RawWidths $Widths
 $logPrefix = 'translate-header'
-$safeTabs = Parse-Tabs -RawTabs $Tabs
+$safeTabs = @(Parse-Tabs -RawTabs $Tabs)
 if ($safeTabs.Count -eq 0) {
   Write-Warn 'No tabs were provided in -Tabs. Falling back to translate only.'
   $safeTabs = @('translate')

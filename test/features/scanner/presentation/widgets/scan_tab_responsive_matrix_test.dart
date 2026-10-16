@@ -42,6 +42,7 @@ void main() {
     _ViewportCase('430x932', Size(430, 932)),
     _ViewportCase('844x390', Size(844, 390)),
     _ViewportCase('1024x768', Size(1024, 768)),
+    _ViewportCase('340x360', Size(340, 360), strictTinyLandscape: true),
     _ViewportCase('340x260', Size(340, 260), strictTinyLandscape: true),
     _ViewportCase('320x240', Size(320, 240), strictTinyLandscape: true),
   ];
@@ -128,7 +129,11 @@ void main() {
       final Rect noticeRect = tester.getRect(
         find.byKey(const ValueKey('scan-notice-panel')),
       );
-      final Rect shutterRect = tester.getRect(find.byTooltip('Retake'));
+      final Finder retakeFinder = find.byTooltip('Retake');
+      final Finder shutterFinder = retakeFinder.evaluate().isNotEmpty
+          ? retakeFinder
+          : find.byTooltip('Capture Scan');
+      final Rect shutterRect = tester.getRect(shutterFinder);
       final Finder rotateFinder = find.byTooltip('Switch camera');
       final bool hasRotate = rotateFinder.evaluate().isNotEmpty;
       final Rect rotateRect = hasRotate

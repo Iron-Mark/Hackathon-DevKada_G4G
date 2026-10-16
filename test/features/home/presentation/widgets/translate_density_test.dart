@@ -224,6 +224,7 @@ void main() {
 
         expect(textRect.left, greaterThanOrEqualTo(0), reason: '$width');
         expect(sketchRect.right, lessThanOrEqualTo(width), reason: '$width');
+        expect(sketchRect.left, greaterThan(textRect.right), reason: '$width');
         expect(hasOverlap(textRect, sketchRect), isFalse, reason: '$width');
         expect(textRect.top, equals(sketchRect.top), reason: '$width');
         expect(tester.takeException(), isNull, reason: '$width');
