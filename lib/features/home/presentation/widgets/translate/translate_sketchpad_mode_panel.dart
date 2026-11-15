@@ -305,7 +305,7 @@ class _PillButton extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 44),
         alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(14),

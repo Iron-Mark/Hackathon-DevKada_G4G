@@ -23,7 +23,7 @@ The goal of this aggregator is to add a lightweight rolling vote on top of the e
 
 ### Where the aggregator lives
 
-Per project rules (`CLAUDE.md` → "All logic lives in Riverpod notifiers/providers"), the aggregator is **not** a `StatefulWidget` field. It lives inside the existing `ScanTabController` (`lib/features/scanner/presentation/providers/scan_tab_controller.dart`), which is already the natural integration point — `applyLiveDetections(...)` is called every detection tick from `ScannerCamera.onDetections`.
+Per project rules (`DEVELOPMENT.md` → "Widgets display state and dispatch actions"), the aggregator is **not** a `StatefulWidget` field. It lives inside the existing `ScanTabController` (`lib/features/scanner/presentation/providers/scan_tab_controller.dart`), which is already the natural integration point — `applyLiveDetections(...)` is called every detection tick from `ScannerCamera.onDetections`.
 
 ### Data flow
 

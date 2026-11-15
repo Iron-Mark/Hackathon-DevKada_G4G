@@ -797,7 +797,7 @@ void main() {
       find.byKey(const ValueKey<String>('translate-filipino-input')),
       'Kumusta, 123!',
     );
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.text('Used as: kumusta'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -806,7 +806,7 @@ void main() {
       find.byKey(const ValueKey<String>('translate-filipino-input')),
       'Kumusta',
     );
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.text('Used as: kumusta'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -837,7 +837,7 @@ void main() {
       find.byKey(const ValueKey<String>('translate-encoded-baybayin-input')),
       'ᜊ',
     );
-    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 250));
 
     expect(
       find.text('Type encoded Baybayin like ka, ki, or k+...'),

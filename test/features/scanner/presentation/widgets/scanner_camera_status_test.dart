@@ -5,6 +5,47 @@ import 'package:kudlit_ph/features/scanner/presentation/widgets/model_not_ready_
 import 'package:kudlit_ph/features/scanner/presentation/widgets/scanner_camera.dart';
 
 void main() {
+  test('QA camera status parses hash-route query parameters', () {
+    expect(
+      qaCameraStatusValueFromUri(
+        Uri.parse('http://localhost/#/home?qa_camera_status=unavail-ready'),
+      ),
+      'unavail-ready',
+    );
+  });
+
+  test('QA camera status parses direct query parameters', () {
+    expect(
+      qaCameraStatusValueFromUri(
+        Uri.parse('http://localhost/?qa_camera_status=unavail-ready#/home'),
+      ),
+      'unavail-ready',
+    );
+  });
+
+  test('QA camera status gives direct parameters precedence', () {
+    expect(
+      qaCameraStatusValueFromUri(
+        Uri.parse(
+          'http://localhost/?qa_camera_status=direct#/home?qa_camera_status=hash',
+        ),
+      ),
+      'direct',
+    );
+  });
+
+  test('QA camera status ignores missing and empty parameters', () {
+    for (final String url in <String>[
+      'http://localhost/#/home',
+      'http://localhost/#/home?',
+      'http://localhost/#/home?qa_camera_status=',
+      'http://localhost/#/home?other=unavail-ready',
+      'http://localhost/?qa_camera_status=#/home',
+    ]) {
+      expect(qaCameraStatusValueFromUri(Uri.parse(url)), isNull, reason: url);
+    }
+  });
+
   test('web camera secure context allows HTTPS and localhost only', () {
     expect(
       isWebCameraSecureContext(Uri.parse('https://kudlit.example.com/#/home')),

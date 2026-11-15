@@ -40,8 +40,8 @@ class SketchpadTargetGlyphButton extends StatelessWidget {
           }
         },
         child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: cs.surfaceContainerLow,
             borderRadius: BorderRadius.circular(14),
@@ -54,11 +54,11 @@ class SketchpadTargetGlyphButton extends StatelessWidget {
                   selected.glyph,
                   style: const TextStyle(
                     fontFamily: 'Baybayin Simple TAWBID',
-                    fontSize: 22,
+                    fontSize: 20,
                     height: 1,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 6),
               ],
               Expanded(
                 child: Text(
@@ -66,7 +66,7 @@ class SketchpadTargetGlyphButton extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: selected != null
                         ? FontWeight.w700
                         : FontWeight.w400,
@@ -78,7 +78,7 @@ class SketchpadTargetGlyphButton extends StatelessWidget {
               ),
               Icon(
                 Icons.expand_more_rounded,
-                size: 20,
+                size: 18,
                 color: cs.onSurface.withAlpha(150),
               ),
             ],
