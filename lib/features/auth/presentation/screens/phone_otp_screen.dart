@@ -20,9 +20,14 @@ import 'package:kudlit_ph/features/auth/presentation/widgets/login_hero.dart';
 /// OTP verification screen. Receives the [phoneNumber] the code was sent to.
 /// Renders 6 individual digit boxes that auto-advance focus on input.
 class PhoneOtpScreen extends ConsumerStatefulWidget {
-  const PhoneOtpScreen({required this.phoneNumber, super.key});
+  const PhoneOtpScreen({
+    required this.phoneNumber,
+    this.initialCooldown = 30,
+    super.key,
+  });
 
   final String phoneNumber;
+  final int initialCooldown;
 
   @override
   ConsumerState<PhoneOtpScreen> createState() => _PhoneOtpScreenState();
@@ -59,7 +64,9 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
     super.initState();
     // OTP was requested by the previous screen — start the cooldown
     // immediately so the user cannot hammer "Resend" right away.
-    _startResendCooldown();
+    if (widget.initialCooldown > 0) {
+      _startResendCooldown(seconds: widget.initialCooldown);
+    }
   }
 
   @override
@@ -94,9 +101,9 @@ class _PhoneOtpScreenState extends ConsumerState<PhoneOtpScreen> {
     passwordResetEmailSent: () => AppConstants.unexpectedError,
   );
 
-  void _startResendCooldown() {
+  void _startResendCooldown({int seconds = _resendCooldownSeconds}) {
     _resendTimer?.cancel();
-    setState(() => _resendCooldown = _resendCooldownSeconds);
+    setState(() => _resendCooldown = seconds);
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
       if (!mounted) {
         t.cancel();

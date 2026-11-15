@@ -19,6 +19,24 @@ void main() {
     await tester.pump();
   }
 
+  testWidgets('phone OTP preserves the default resend cooldown', (
+    tester,
+  ) async {
+    await pumpLandscape(
+      tester,
+      const PhoneOtpScreen(phoneNumber: '+639171234567'),
+    );
+
+    expect(find.text('Resend in 30s'), findsOneWidget);
+    expect(find.text('Resend code'), findsNothing);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Resend in 29s'), findsOneWidget);
+
+    // Dispose the screen so its periodic cooldown timer cannot outlive the test.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
   testWidgets('welcome auth screen fits phone landscape', (tester) async {
     await pumpLandscape(tester, const LoginScreen());
 
@@ -138,14 +156,17 @@ void main() {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
-            home: PhoneOtpScreen(phoneNumber: '+639171234567'),
+            home: PhoneOtpScreen(
+              phoneNumber: '+639171234567',
+              initialCooldown: 0,
+            ),
           ),
         ),
       );
       await tester.pump();
 
       expect(find.text('Enter the code'), findsOneWidget);
-      expect(find.textContaining('Resend in '), findsOneWidget);
+      expect(find.text('Resend code'), findsOneWidget);
       expect(find.bySemanticsLabel('OTP digit 1'), findsOneWidget);
       expect(tester.takeException(), isNull);
       semantics.dispose();
@@ -157,12 +178,12 @@ void main() {
   ) async {
     await pumpLandscape(
       tester,
-      const PhoneOtpScreen(phoneNumber: '+639171234567'),
+      const PhoneOtpScreen(phoneNumber: '+639171234567', initialCooldown: 0),
     );
 
     expect(find.text('Enter the code'), findsOneWidget);
     expect(find.text('Verify'), findsOneWidget);
-    expect(find.textContaining('Resend in '), findsOneWidget);
+    expect(find.text('Resend code'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -177,6 +198,13 @@ void main() {
     await pumpLandscape(tester, const ResetPasswordScreen());
 
     expect(find.text('Set a new password'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is AuthSubmitButton && widget.label == 'Update password',
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }
