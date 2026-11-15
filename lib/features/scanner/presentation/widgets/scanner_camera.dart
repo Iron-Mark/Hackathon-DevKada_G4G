@@ -111,17 +111,23 @@ bool _containsPermissionToken(String value) {
   return permissionTokens.any((String token) => value.contains(token));
 }
 
-String? _qaCameraStatusValueFromUri() {
-  final String? direct = Uri.base.queryParameters['qa_camera_status'];
+@visibleForTesting
+String? qaCameraStatusValueFromUri(Uri uri) {
+  final String? direct = uri.queryParameters['qa_camera_status'];
   if (direct != null && direct.isNotEmpty) return direct;
 
-  final String fragment = Uri.base.fragment;
+  final String fragment = uri.fragment;
   final int qIndex = fragment.indexOf('?');
   if (qIndex == -1 || qIndex == fragment.length - 1) return null;
 
   final String hashQuery = fragment.substring(qIndex + 1);
-  return Uri(query: '?$hashQuery').queryParameters['qa_camera_status'];
+  final String? hashValue = Uri(
+    query: hashQuery,
+  ).queryParameters['qa_camera_status'];
+  return hashValue != null && hashValue.isNotEmpty ? hashValue : null;
 }
+
+String? _qaCameraStatusValueFromUri() => qaCameraStatusValueFromUri(Uri.base);
 
 bool _shouldRunQaCameraStatusProbe() {
   return _qaCameraStatusValueFromUri() != null;

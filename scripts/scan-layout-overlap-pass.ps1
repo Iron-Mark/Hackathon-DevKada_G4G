@@ -43,7 +43,7 @@ function Capture-Image {
     [int]$WaitMs = 1200
   )
 
-  & npx playwright screenshot --viewport-size=$ViewportSpec --wait-for-timeout=$WaitMs $TargetUrl $OutputPath
+  & npx playwright@1.60.0 screenshot --viewport-size=$ViewportSpec --wait-for-selector=flutter-view --timeout=60000 --wait-for-timeout=$WaitMs $TargetUrl $OutputPath
 }
 
 function Add-QueryParam {
