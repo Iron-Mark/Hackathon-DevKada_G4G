@@ -103,3 +103,23 @@ camera access, real model inference, or provider configuration.
 
 The completed legacy root `todo.md` checklist is not restored during history sync;
 the active ownership/backlog index remains [system_audit_next_steps.md](system_audit_next_steps.md).
+
+## Pages runtime asset delivery
+
+The Pages uploader excludes hidden files by default. Flutter requires the bundled
+`app/assets/.env` even when its client values are empty; omitting it produces a
+blank app despite successful deployment and HTTP 200 for the app shell.
+
+The existing deployment workflow validates the public bundle before explicitly
+including hidden files. Only the runtime asset, Flutter build-ID metadata, and an
+empty nojekyll marker are permitted. Unexpected hidden entries, server-key names,
+service-role credentials, and nonempty Hugging Face tokens fail validation without
+printing their values. Keep private provider/model credentials server-side or in
+local-only native development, never a public Pages artifact.
+Configured client pairs must use an HTTPS origin without userinfo/query/fragment
+and a recognized public publishable key or JWT with the anonymous role. Unknown
+key formats and comments in the generated public runtime asset fail closed.
+
+Run `python -m unittest discover -s test/ci -p 'test_*.py' -v` locally. Validate a
+direct Flutter build with `python scripts/check_public_bundle.py --app-subdir .`;
+the default validates the composed Pages bundle under `build/web/app`.

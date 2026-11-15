@@ -42,6 +42,11 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           HUGGINGFACE_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
 
+      - name: Validate public bundle and required runtime asset
+        run: |
+          python3 -m unittest discover -s test/ci -p 'test_*.py' -v
+          python3 scripts/check_public_bundle.py
+
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
@@ -49,6 +54,8 @@ jobs:
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: build/web
+          # Required by Flutter's assets/.env; validation above rejects other hidden content.
+          include-hidden-files: true
 
   deploy:
     name: Deploy to Pages
