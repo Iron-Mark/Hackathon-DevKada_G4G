@@ -34,9 +34,14 @@ def validate_bundle(root: Path, app_subdir: str = "app") -> None:
     if (root / ".nojekyll").exists() and (root / ".nojekyll").stat().st_size:
         raise ValueError("The nojekyll marker must be empty")
 
+    validate_public_env(env_path.read_text(encoding="utf-8"))
+
+
+def validate_public_env(contents: str) -> None:
+    """Validate the shared allowlist before compilation and before publication."""
     allowed_keys = {"SUPABASE_URL", "SUPABASE_ANON_KEY", "HUGGINGFACE_TOKEN"}
     values = {}
-    for line in env_path.read_text(encoding="utf-8").splitlines():
+    for line in contents.splitlines():
         line = line.strip()
         if not line:
             continue

@@ -2,6 +2,10 @@
 .git
 .gitignore
 
+# Private local configuration must never enter builder layers or build caches.
+.env*
+**/.env*
+
 # Flutter build output and tool cache — rebuilt inside Docker
 build/
 .dart_tool/

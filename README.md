@@ -115,11 +115,16 @@ Both deployment paths expect these client configuration values as repository or 
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `HUGGINGFACE_TOKEN` is optional.
 
-`GEMINI_API_KEY` must remain server-side and be configured only for the
+`HUGGINGFACE_TOKEN` is native-development-only and is never copied into public
+web builds. `GEMINI_API_KEY` must remain server-side and be configured only for the
 `gemini-proxy` Supabase Edge Function. Never include it in the Flutter web
 build because `.env` is bundled into the published client assets.
+
+The supported web build sanitizes `.env` to the public Supabase pair before
+compilation and restores the original local file afterward. Both Cloudflare and
+Pages validate the resulting public artifact. Docker excludes local `.env*`
+files entirely and accepts only the two public Supabase build arguments.
 
 After a deployment is live, smoke-check the main web routes:
 
