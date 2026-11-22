@@ -1,7 +1,7 @@
 # ─── Stage 1: Build ──────────────────────────────────────────────────────────
 # Pin the exact Flutter version so every machine builds identically.
 # This image supports both linux/amd64 (Intel) and linux/arm64 (Apple Silicon).
-FROM ghcr.io/cirruslabs/flutter:stable AS builder
+FROM ghcr.io/cirruslabs/flutter:3.41.9 AS builder
 
 WORKDIR /app
 
@@ -15,10 +15,14 @@ COPY . .
 
 # Release web build — CanvasKit is the default renderer for release builds
 # --pwa-strategy=none skips service worker generation (keeps it simple)
-RUN flutter build web \
+RUN command -v python3 >/dev/null || (apt-get update && apt-get install -y --no-install-recommends python3)
+ARG SUPABASE_URL=""
+ARG SUPABASE_ANON_KEY=""
+RUN python3 scripts/build_public_web.py -- flutter build web \
       --release \
       --pwa-strategy none \
-      --no-tree-shake-icons
+      --no-tree-shake-icons \
+    && python3 scripts/check_public_bundle.py --app-subdir .
 
 # ─── Stage 2: Serve ──────────────────────────────────────────────────────────
 # nginx:alpine is ~45 MB. We copy only the compiled web output — no Flutter SDK.

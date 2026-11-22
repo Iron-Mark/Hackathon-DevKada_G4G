@@ -3,7 +3,12 @@ set -e
 
 if ! command -v flutter >/dev/null 2>&1; then
   if [ ! -d "$HOME/flutter" ]; then
-    git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$HOME/flutter"
+    # Match the existing CI SDK and verify the downloaded source before running it.
+    git clone https://github.com/flutter/flutter.git -b 3.41.9 --depth 1 "$HOME/flutter"
+    if [ "$(git -C "$HOME/flutter" rev-parse HEAD)" != "00b0c91f06209d9e4a41f71b7a512d6eb3b9c694" ]; then
+      echo "Downloaded Flutter source does not match the reviewed SDK revision." >&2
+      exit 1
+    fi
   fi
   export PATH="$PATH:$HOME/flutter/bin"
 fi
@@ -17,26 +22,12 @@ if [[ "$APP_BASE_PATH" != /* || "$APP_BASE_PATH" != */ ]]; then
   exit 1
 fi
 
-if [ -n "${SUPABASE_URL:-}" ] || [ -n "${SUPABASE_ANON_KEY:-}" ] || [ -n "${HUGGINGFACE_TOKEN:-}" ]; then
-  # Write .env from CI environment variables so flutter_dotenv can load it.
-  # Only client-safe values belong here because Flutter bundles this asset.
-  cat > .env <<EOF
-SUPABASE_URL=${SUPABASE_URL}
-SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN:-}
-EOF
-elif [ ! -f .env ]; then
-  cat > .env <<EOF
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-HUGGINGFACE_TOKEN=
-EOF
-fi
-
 flutter config --enable-web
 flutter pub get --enforce-lockfile
 export MSYS_NO_PATHCONV=1
-flutter build web --release --base-href "$APP_BASE_PATH"
+# Compile only allowlisted public values, even when a local/native .env has keys.
+# The wrapper preserves the original .env bytes on both success and failure.
+python scripts/build_public_web.py -- flutter build web --release --base-href "$APP_BASE_PATH"
 
 rm -rf .seo-build
 mkdir -p .seo-build/app
@@ -108,3 +99,4 @@ cp -R web/social build/web/social
 cp -R web/screenshots build/web/screenshots
 
 rm -rf .seo-build
+python scripts/check_public_bundle.py

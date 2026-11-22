@@ -40,7 +40,6 @@ jobs:
           APP_BASE_PATH: /${{ github.event.repository.name }}/app/
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          HUGGINGFACE_TOKEN: ${{ secrets.HUGGINGFACE_TOKEN }}
 
       - name: Validate public bundle and required runtime asset
         run: |

@@ -123,3 +123,25 @@ key formats and comments in the generated public runtime asset fail closed.
 Run `python -m unittest discover -s test/ci -p 'test_*.py' -v` locally. Validate a
 direct Flutter build with `python scripts/check_public_bundle.py --app-subdir .`;
 the default validates the composed Pages bundle under `build/web/app`.
+
+`bash build.sh` now compiles through `scripts/build_public_web.py`: only the
+validated public Supabase URL/key pair is copied into the bundled configuration,
+and the optional Hugging Face token is always empty for web builds. Gemini and
+Hugging Face provider variables are not passed to the build child. Existing local
+`.env` bytes are restored after a successful or failed build, so native-only
+development credentials are not replaced by CI/public configuration. The original
+file is retained in memory, not copied into another secret-bearing disk backup.
+If no local file existed, only a safe generated public configuration is left.
+
+Cloudflare and local composed builds run the same final public-bundle gate as
+Pages; validation is not only a Pages-upload check. CI no longer supplies a model
+token to web compilation. Native-only model download configuration remains local;
+the existing server-backed Gemini path is unchanged. Do not publish raw Flutter
+web output built outside this wrapper with a native development `.env` file.
+
+Docker also excludes `.env*` files from the build context and uses the same
+public-build wrapper and output validator. Its optional `SUPABASE_URL` and
+`SUPABASE_ANON_KEY` build arguments accept public client configuration only;
+never pass provider keys or a Supabase service-role key as build arguments.
+The Flutter bootstrap fallback in `build.sh` matches CI's existing 3.41.9 SDK
+and verifies its reviewed source commit before executing a newly cloned SDK.
