@@ -8,10 +8,13 @@ WORKDIR /app
 # Copy dependency manifests first — Docker caches this layer.
 # pub get only re-runs when pubspec.yaml or pubspec.lock changes.
 COPY pubspec.yaml pubspec.lock ./
-RUN flutter pub get --no-example
+RUN flutter pub get --no-example --enforce-lockfile
 
 # Copy the rest of the source (includes .env asset)
 COPY . .
+
+# Ensure client-safe empty .env exists on clean clones (mirrors build.sh)
+RUN test -f .env || printf 'SUPABASE_URL=\nSUPABASE_ANON_KEY=\nHUGGINGFACE_TOKEN=\n' > .env
 
 # Release web build — CanvasKit is the default renderer for release builds
 # --pwa-strategy=none skips service worker generation (keeps it simple)
